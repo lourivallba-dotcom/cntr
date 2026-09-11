@@ -1,0 +1,36 @@
+# Padrões de reconhecimento usados quando a etiqueta branca do flex tank
+# NÃO tem QR code nem código de barras — nesse caso o serviço cai para leitura
+# por OCR e tenta casar o texto lido com cada padrão abaixo, na ordem.
+#
+# Adicione novos formatos aqui conforme forem aparecendo em campo, sem precisar
+# alterar o código. Os padrões são expressões regulares (regex) em Python,
+# aplicadas sobre o texto do OCR já normalizado (maiúsculas, sem espaços).
+#
+# Exemplo real observado: "DWH2604055A-626DT0883"
+flex_number_patterns:
+  # Processo administrativo que começa com DWH (formato mais comum hoje).
+  - "DWH[A-Z0-9]{6,}-?[A-Z0-9]{4,}"
+  # Outros prefixos de processo administrativo já vistos ou esperados.
+  - "DHL[A-Z0-9]{6,}-?[A-Z0-9]{4,}"
+  - "FLX[A-Z0-9]{6,}-?[A-Z0-9]{4,}"
+  # Formato genérico "lote": letras+dígitos, opcionalmente com barras/traços
+  # (ex.: A4/20260425/A do campo "Lot No").
+  - "[A-Z0-9]{1,4}[/\\-][0-9]{6,8}[/\\-][A-Z0-9]{1,4}"
+  # Último recurso: qualquer código alfanumérico "denso" com pelo menos 10
+  # caracteres e ao menos 1 letra e 1 número (evita pegar apenas datas soltas).
+  - "(?=[A-Z0-9\\-]{10,})(?=.*[A-Z])(?=.*[0-9])[A-Z0-9\\-]{10,}"
+
+# Palavras-chave (case-insensitive) que, quando aparecem no texto OCR de uma
+# das fotos, indicam fortemente que aquela foto é a ETIQUETA (mesmo sem QR/barcode).
+label_keywords:
+  - "certification"
+  - "certificado"
+  - "flexitank"
+  - "flex tank"
+  - "pro name"
+  - "pro spec"
+  - "pro check"
+  - "lot no"
+  - "lote"
+  - "valve"
+  - "quality products"

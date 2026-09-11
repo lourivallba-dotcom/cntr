@@ -1,0 +1,19 @@
+services:
+  cntr-vision:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # permite editar os padrões (novos formatos de etiqueta) sem rebuildar a imagem
+      - ./config/patterns.yaml:/srv/app/config/patterns.yaml:ro
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Opcional: só é necessário se STORE_BACKEND=redis no .env (recomendado em
+  # produção, para o lote de fotos sobreviver a reinícios do serviço).
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped

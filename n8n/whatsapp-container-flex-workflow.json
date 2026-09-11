@@ -1,0 +1,328 @@
+{
+  "name": "Grupo WhatsApp - Container + Flex Tank",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## LEIA ANTES DE IMPORTAR\n\nEste workflow espera um provedor de WhatsApp que suporte GRUPOS (a WhatsApp Cloud API oficial da Meta NÃO suporta grupos — só conversas 1:1/broadcast). Provedores compatíveis com o formato usado aqui: Evolution API, WAHA (WhatsApp HTTP API) ou um bridge Baileys equivalente.\n\nAjuste:\n1. O node \"Webhook - Mensagem WhatsApp\" para o formato de payload do seu provedor.\n2. O node \"Config\" com as URLs/tokens reais.\n3. Os 2 nodes de HTTP Request que enviam mensagem/mídia de volta ao WhatsApp, para o endpoint exato do seu provedor.\n\nVeja o README.md na raiz do repo para o passo a passo completo.",
+        "height": 380,
+        "width": 460
+      },
+      "id": "sticky-readme",
+      "name": "LEIA-ME",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-900, -420]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-in",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-in",
+      "name": "Webhook - Mensagem WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-900, 0],
+      "webhookId": "cntr-whatsapp-in"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cntr-vision-url",
+              "name": "cntr_vision_base_url",
+              "type": "string",
+              "value": "http://cntr-vision:8000"
+            },
+            {
+              "id": "group-id",
+              "name": "group_id",
+              "type": "string",
+              "value": "COLOQUE_O_ID_DO_GRUPO_AQUI@g.us"
+            },
+            {
+              "id": "email-to",
+              "name": "email_to",
+              "type": "string",
+              "value": "operacoes@empresa.com,qualidade@empresa.com"
+            },
+            {
+              "id": "responsible-phones",
+              "name": "responsible_phones",
+              "type": "string",
+              "value": "5511999990001,5511999990002"
+            },
+            {
+              "id": "whatsapp-send-url",
+              "name": "whatsapp_send_url",
+              "type": "string",
+              "value": "http://evolution-api:8080/message/sendText/COLOQUE_A_INSTANCIA"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-680, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza o payload recebido do provedor de WhatsApp para um formato único.\n// Ajuste este bloco conforme o JSON real que seu provedor envia no webhook\n// (Evolution API, WAHA e Baileys têm formatos ligeiramente diferentes).\nconst body = $input.first().json.body ?? $input.first().json;\n\n// --- Exemplo assumindo formato estilo Evolution API ---\nconst messageType = body?.message?.type ?? body?.type ?? 'unknown';\nconst chatId = body?.message?.chatId ?? body?.chatId ?? body?.from;\nconst isImage = messageType === 'image' || messageType === 'imageMessage';\nconst text = body?.message?.text ?? body?.text ?? '';\nconst mediaBase64 = body?.message?.base64 ?? body?.base64 ?? null;\nconst mediaMimeType = body?.message?.mimetype ?? body?.mimetype ?? 'image/jpeg';\nconst filename = body?.message?.filename ?? `foto_${Date.now()}.jpg`;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    chat_id: chatId,\n    message_type: messageType,\n    is_image: isImage,\n    text,\n    media_base64: mediaBase64,\n    media_mime_type: mediaMimeType,\n    filename,\n  },\n}];\n"
+      },
+      "id": "normalize",
+      "name": "Extrai dados da mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-group",
+              "leftValue": "={{$json.chat_id}}",
+              "rightValue": "={{$('Config').first().json.group_id}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond-image",
+              "leftValue": "={{$json.is_image}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-image-from-group",
+      "name": "É foto do grupo alvo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-240, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst buffer = Buffer.from(item.media_base64, 'base64');\nconst binary = await this.helpers.prepareBinaryData(buffer, item.filename, item.media_mime_type);\nreturn [{ json: item, binary: { file: binary } }];\n"
+      },
+      "id": "base64-to-binary",
+      "name": "Base64 -> binário",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-20, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$('Config').first().json.cntr_vision_base_url}}/batches/{{$json.chat_id}}/images",
+        "sendBinaryData": true,
+        "binaryPropertyName": "file",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": []
+        },
+        "options": {}
+      },
+      "id": "call-cntr-vision",
+      "name": "Envia para cntr-vision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [200, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-ready",
+              "leftValue": "={{$json.ready}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-ready",
+      "name": "Lote completo (5 fotos)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [420, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Converte as 5 fotos (base64) devolvidas pelo cntr-vision em anexos binários\n// para o node de e-mail, e monta o texto da mensagem de resposta no grupo.\nconst result = $input.first().json.result;\nconst config = $('Config').first().json;\n\nconst binary = {};\nfor (const img of result.images) {\n  const buffer = Buffer.from(img.content_b64, 'base64');\n  binary[`anexo_${img.index}_${img.role}`] = await this.helpers.prepareBinaryData(\n    buffer,\n    img.filename,\n    img.content_type,\n  );\n}\n\nconst mentions = config.responsible_phones.split(',').map((p) => p.trim()).filter(Boolean);\nconst mentionText = mentions.map((p) => `@${p}`).join(' ');\n\nconst warningsText = (result.warnings || []).length\n  ? `\\n\\n⚠️ Atenção, conferir manualmente: ${result.warnings.join(', ')}`\n  : '';\n\nconst replyText = `📦 Novo lote recebido\\nContêiner: ${result.container_number ?? 'NÃO IDENTIFICADO'}\\nFlex Tank: ${result.flex_number ?? 'NÃO IDENTIFICADO'}${warningsText}\\n\\n${mentionText}`;\n\nconst emailSubject = `Contêiner ${result.container_number ?? 'S/N'} / Flex ${result.flex_number ?? 'S/N'}`;\nconst emailBody = `Segue em anexo o registro fotográfico da operação.\\n\\nContêiner: ${result.container_number ?? 'não identificado'} (${result.container_number_check_digit_valid ? 'dígito verificador OK' : 'CONFERIR dígito verificador'})\\nFlex Tank / Processo: ${result.flex_number ?? 'não identificado'} (fonte: ${result.flex_number_source ?? '-'})${warningsText}`;\n\nreturn [{\n  json: {\n    ...result,\n    reply_text: replyText,\n    mentions,\n    email_subject: emailSubject,\n    email_body: emailBody,\n    email_to: config.email_to,\n  },\n  binary,\n}];\n"
+      },
+      "id": "prepare-output",
+      "name": "Monta e-mail e resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, -120]
+    },
+    {
+      "parameters": {
+        "fromEmail": "bot-operacoes@empresa.com",
+        "toEmail": "={{$json.email_to}}",
+        "subject": "={{$json.email_subject}}",
+        "text": "={{$json.email_body}}",
+        "options": {
+          "attachments": "=anexo_0_label,anexo_1_container_door,anexo_2_internal,anexo_3_internal,anexo_4_internal"
+        }
+      },
+      "id": "send-email",
+      "name": "Envia e-mail com as 5 fotos",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [860, -220],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP - operações"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$('Config').first().json.whatsapp_send_url}}",
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ { number: $('Config').first().json.group_id, text: $json.reply_text, mentioned: $json.mentions } }}",
+        "options": {}
+      },
+      "id": "reply-whatsapp",
+      "name": "Responde no grupo com menção",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, -20]
+    },
+    {
+      "parameters": {},
+      "id": "noop-not-ready",
+      "name": "Aguarda próximas fotos",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [640, 120]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-reset-group",
+              "leftValue": "={{$json.chat_id}}",
+              "rightValue": "={{$('Config').first().json.group_id}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond-reset-text",
+              "leftValue": "={{$json.text}}",
+              "rightValue": "/reset",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-reset-command",
+      "name": "Comando /reset?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-240, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$('Config').first().json.cntr_vision_base_url}}/batches/{{$json.chat_id}}/reset",
+        "options": {}
+      },
+      "id": "reset-batch",
+      "name": "Reseta o lote",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-20, 260]
+    }
+  ],
+  "connections": {
+    "Webhook - Mensagem WhatsApp": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Extrai dados da mensagem", "type": "main", "index": 0 }]]
+    },
+    "Extrai dados da mensagem": {
+      "main": [
+        [
+          { "node": "É foto do grupo alvo?", "type": "main", "index": 0 },
+          { "node": "Comando /reset?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "É foto do grupo alvo?": {
+      "main": [[{ "node": "Base64 -> binário", "type": "main", "index": 0 }], []]
+    },
+    "Base64 -> binário": {
+      "main": [[{ "node": "Envia para cntr-vision", "type": "main", "index": 0 }]]
+    },
+    "Envia para cntr-vision": {
+      "main": [[{ "node": "Lote completo (5 fotos)?", "type": "main", "index": 0 }]]
+    },
+    "Lote completo (5 fotos)?": {
+      "main": [
+        [{ "node": "Monta e-mail e resposta", "type": "main", "index": 0 }],
+        [{ "node": "Aguarda próximas fotos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Monta e-mail e resposta": {
+      "main": [
+        [
+          { "node": "Envia e-mail com as 5 fotos", "type": "main", "index": 0 },
+          { "node": "Responde no grupo com menção", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Comando /reset?": {
+      "main": [[{ "node": "Reseta o lote", "type": "main", "index": 0 }], []]
+    }
+  }
+}
