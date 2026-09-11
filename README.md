@@ -72,6 +72,64 @@ retorna `null` e um aviso em `warnings` (ex: `numero_do_flex_tank_nao_encontrado
 para que alguém confira manualmente — o texto de aviso também entra na
 mensagem do grupo e no corpo do e-mail.
 
+## Como adicionar o robô no grupo
+
+O "robô" não é adicionado ao grupo como um bot especial — ele entra **como um
+número de WhatsApp normal**, do mesmo jeito que qualquer pessoa. Quem faz a
+ponte entre esse número e o n8n é o **Evolution API**, já incluído no
+`docker-compose.yml`.
+
+1. **Use um número dedicado ao robô**, de preferência não o seu WhatsApp
+   pessoal (pode ser um chip extra, um WhatsApp Business, ou um número virtual
+   que aceite SMS/ligação para ativar o WhatsApp). Esse número vai ficar
+   permanentemente logado como o robô.
+
+2. Suba os serviços:
+   ```bash
+   cp .env.example .env   # edite a EVOLUTION_API_KEY e as senhas do Postgres
+   docker compose up --build
+   ```
+
+3. Abra o **Manager** do Evolution API em `http://localhost:3000` e faça
+   login com a `EVOLUTION_API_KEY` definida no `.env`.
+
+4. Crie uma nova instância (ex: `grupo-operacoes`) e clique para **gerar o QR
+   code**.
+
+5. No celular do número dedicado ao robô: **WhatsApp → Configurações →
+   Aparelhos conectados → Conectar um aparelho**, e escaneie o QR code exibido
+   no Manager — é o mesmo mecanismo do WhatsApp Web/Desktop.
+
+6. Depois de conectado, esse número aparece como "online" na instância. Agora
+   é só **pedir para um administrador do grupo adicionar esse número como
+   participante**, normalmente: no grupo → tocar no nome do grupo →
+   Participantes → Adicionar participante → digitar o número do robô.
+
+7. Descubra o **ID do grupo** (`group_id`, formato `xxxxxxxxxx-xxxxxxxxxx@g.us`
+   ou `xxxxxxxxxxxxxxxxxxx@g.us`): assim que o robô estiver no grupo, mande
+   qualquer mensagem de teste nele — o payload que chega no webhook do n8n
+   (`Webhook - Mensagem WhatsApp` → aba "Executions") vai trazer esse ID no
+   campo do remetente/chat. Copie esse valor.
+
+8. No workflow do n8n, abra o node **Config** e cole esse ID em `group_id`.
+
+9. No Manager do Evolution API, confirme que o **webhook da instância** está
+   apontando para a URL pública do node "Webhook - Mensagem WhatsApp" do n8n
+   (já vem pré-configurado via `N8N_WHATSAPP_WEBHOOK_URL` no `.env`, mas
+   confira na aba de configurações da instância caso use um n8n hospedado
+   fora do docker-compose, ex: n8n Cloud — nesse caso troque essa variável
+   pela URL pública real do seu webhook).
+
+A partir daí, qualquer foto enviada nesse grupo passa a ser processada pelo
+workflow automaticamente.
+
+> **Atenção:** conectar um número dessa forma (via Baileys/Evolution API) usa
+> o mesmo protocolo do WhatsApp Web e não é o método "oficial" endossado pela
+> Meta para uso comercial em massa — funciona bem para automação de um grupo
+> operacional interno, mas números usados assim podem eventualmente ser
+> banidos se enviarem muito volume de mensagens não solicitadas. Para esse
+> caso de uso (grupo interno, poucas mensagens) o risco é baixo.
+
 ## Rodando localmente
 
 ```bash

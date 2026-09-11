@@ -17,3 +17,65 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+
+  # --- Provedor de WhatsApp (necessário para funcionar dentro de um GRUPO,
+  # já que a Cloud API oficial da Meta não suporta grupos). Ver README.md
+  # seção "Como adicionar o robô no grupo" para o passo a passo de pareamento.
+
+  evolution-postgres:
+    image: postgres:15
+    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USERNAME:-evolution}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evolution}
+      POSTGRES_DB: ${POSTGRES_DATABASE:-evolution}
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  evolution-redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - evolution_redis_data:/data
+    restart: unless-stopped
+
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-troque-esta-chave}
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: "postgresql://${POSTGRES_USERNAME:-evolution}:${POSTGRES_PASSWORD:-evolution}@evolution-postgres:5432/${POSTGRES_DATABASE:-evolution}?schema=evolution_api"
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: "redis://evolution-redis:6379/6"
+      # URL do webhook do n8n que vai receber as mensagens do grupo (path do
+      # node "Webhook - Mensagem WhatsApp" do workflow importado).
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: ${N8N_WHATSAPP_WEBHOOK_URL:-http://n8n:5678/webhook/whatsapp-in}
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      - evolution-postgres
+      - evolution-redis
+    restart: unless-stopped
+
+  # Interface web para criar a instância, ver o QR code e escanear com o
+  # WhatsApp do número que vai representar o robô. Acesse http://localhost:3000
+  evolution-manager:
+    image: evoapicloud/evolution-manager:latest
+    ports:
+      - "3000:3000"
+    environment:
+      EVOLUTION_API_URL: "http://localhost:8080"
+    depends_on:
+      - evolution-api
+    restart: unless-stopped
+
+volumes:
+  evolution_postgres_data:
+  evolution_redis_data:
+  evolution_instances:
