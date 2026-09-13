@@ -48,12 +48,40 @@ def decode_codes(image: Image.Image) -> list[Code]:
     return [Code(type=r.type, data=r.data.decode("utf-8", errors="replace")) for r in results]
 
 
+# Fotos de celular comprimidas (ex: enviadas por WhatsApp) às vezes chegam bem
+# menores do que a foto original tirada — texto de contêiner/etiqueta fica
+# pequeno demais para o Tesseract reconhecer sem ampliar a imagem antes.
+_MIN_OCR_DIMENSION = 1600
+
+# Diferentes modos de segmentação de página do Tesseract enxergam texto
+# "espalhado" (foto de porta de contêiner: logo, código, pesos em blocos
+# separados) melhor do que o modo automático padrão. Roda mais de um modo e
+# concatena o resultado — mais chance de achar o código, custo extra pequeno
+# perto do tamanho de um lote (até 5 fotos).
+_PSM_CONFIGS = ["", "--psm 6", "--psm 11"]
+
+
+def _upscale_for_ocr(image: Image.Image) -> Image.Image:
+    gray = image.convert("L")
+    longest_side = max(gray.width, gray.height)
+    if longest_side >= _MIN_OCR_DIMENSION:
+        return gray
+    scale = _MIN_OCR_DIMENSION / longest_side
+    new_size = (round(gray.width * scale), round(gray.height * scale))
+    return gray.resize(new_size, Image.LANCZOS)
+
+
 def ocr_text(image: Image.Image) -> str:
-    """Extrai texto da imagem via Tesseract OCR."""
+    """Extrai texto da imagem via Tesseract OCR, tentando alguns modos de segmentação."""
     _ensure_tesseract_configured()
     settings = get_settings()
-    try:
-        return pytesseract.image_to_string(image, lang=settings.ocr_lang)
-    except pytesseract.TesseractError:
-        # fallback sem idioma custom, caso o pacote de idioma não esteja instalado no host
-        return pytesseract.image_to_string(image)
+    prepared = _upscale_for_ocr(image)
+
+    texts = []
+    for config in _PSM_CONFIGS:
+        try:
+            texts.append(pytesseract.image_to_string(prepared, lang=settings.ocr_lang, config=config))
+        except pytesseract.TesseractError:
+            # fallback sem idioma custom, caso o pacote de idioma não esteja instalado no host
+            texts.append(pytesseract.image_to_string(prepared, config=config))
+    return "\n".join(texts)

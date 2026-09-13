@@ -26,6 +26,13 @@ def normalize_ocr(text: str) -> str:
     return re.sub(r"\s+", "", text.upper())
 
 
+def _alnum_only(text: str) -> str:
+    """Maiúsculas e só letras/dígitos: remove ruído de OCR (ex: "MRKU} 806 865 4"
+    virando "MRKU8068654") sem risco, já que um código de contêiner nunca tem
+    pontuação de verdade."""
+    return re.sub(r"[^A-Z0-9]", "", text.upper())
+
+
 def container_check_digit(first_ten: str) -> int:
     total = 0
     for i, ch in enumerate(first_ten):
@@ -53,7 +60,7 @@ def extract_container_number(ocr_texts: list[str]) -> ContainerResult:
     first_candidate: str | None = None
     first_candidate_idx: int | None = None
     for idx, text in enumerate(ocr_texts):
-        normalized = normalize_ocr(text)
+        normalized = _alnum_only(text)
         for match in _CONTAINER_RE.finditer(normalized):
             candidate = match.group(0)
             if first_candidate is None:
@@ -68,7 +75,7 @@ def extract_container_number(ocr_texts: list[str]) -> ContainerResult:
 
 def looks_like_container_door(ocr_text: str) -> bool:
     """True se o texto do OCR contém um código de contêiner no padrão ISO 6346."""
-    return bool(_CONTAINER_RE.search(normalize_ocr(ocr_text)))
+    return bool(_CONTAINER_RE.search(_alnum_only(ocr_text)))
 
 
 @dataclass
