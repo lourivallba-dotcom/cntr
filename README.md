@@ -3,9 +3,10 @@
 Serviço de visão computacional (FastAPI/Python) usado por um workflow do
 **n8n** que roda dentro de um grupo de WhatsApp: recebe as 5 fotos de uma
 operação (etiqueta do flex tank, porta do contêiner, parte interna), extrai o
-número do contêiner e o número do flex tank/processo administrativo, envia as
-5 fotos por e-mail e responde no grupo com os números encontrados, marcando os
-responsáveis pela operação.
+número do contêiner e o número do flex tank/processo administrativo, pergunta
+a reserva (booking) e o cliente da operação, consulta e baixa o flex tank na
+base de estoque (Supabase), gera um PDF com os dados e as fotos e o envia por
+e-mail e por WhatsApp (DM) para os contatos parametrizados.
 
 Este repositório contém **só a parte de visão computacional** (o "cérebro" que
 lê as fotos). A orquestração — receber mensagens do WhatsApp, mandar e-mail,
@@ -34,22 +35,39 @@ números individuais (sem menção nativa), o que muda bastante a lógica.
 ## Como o pipeline funciona
 
 ```
-grupo WhatsApp (5 fotos) 
+grupo WhatsApp (5 fotos de 1 contêiner)
    -> n8n recebe cada foto via webhook
    -> n8n chama POST /batches/{chat_id}/images (uma chamada por foto)
-   -> ao chegar a 5ª foto, o cntr-vision já responde com:
+   -> ao chegar a 5ª foto, o cntr-vision identifica:
         - número do contêiner (validado pelo dígito verificador ISO 6346)
         - número do flex tank / processo administrativo (QR > código de
           barras > OCR, nessa ordem de prioridade)
         - qual foto é a etiqueta, qual é a porta do contêiner, e as demais
-        - as 5 fotos em base64, prontas para anexar no e-mail
-   -> n8n envia o e-mail com as 5 fotos + os números encontrados
-   -> n8n responde no grupo com os números e @menciona os responsáveis
+
+   -> bot pergunta no grupo a reserva (booking) e o cliente (OBRIGATÓRIO)
+      — ou, se esse chat já tem um booking/cliente confirmado antes, pergunta
+      se quer reaproveitar ("Deseja usar a mesma reserva e cliente?")
+   -> pessoa responde em texto -> n8n chama POST /chats/{chat_id}/answer
+      - resposta não reconhecida -> bot repete a pergunta (`retry_question`)
+      - resposta OK -> segue para baixo:
+
+   -> cntr-vision consulta o flex tank na base de estoque (Supabase); se
+      encontrar, marca como baixado; se não encontrar, sinaliza que o número
+      não consta na base
+   -> gera o PDF do relatório (dados da operação + as 5 fotos, contêiner
+      primeiro, depois a etiqueta, depois as internas — todas no mesmo
+      padrão visual)
+   -> grava a operação no Supabase (dashboard do cliente) com as fotos
+   -> n8n envia o e-mail com o PDF anexado
+   -> n8n responde no grupo com o resumo e manda uma DM pra cada contato
+      telefônico parametrizado no node Config
 ```
 
 Um lote incompleto (o grupo mandou só 3 fotos e parou) expira sozinho depois
 de um tempo de inatividade configurável (`BATCH_TTL_SECONDS`, padrão 15 min),
-para não misturar fotos de duas operações diferentes.
+para não misturar fotos de duas operações diferentes. Uma pergunta pendente
+(booking/cliente, ou a confirmação de reaproveitar) expira do mesmo jeito
+depois de `CONVERSATION_TTL_SECONDS` (padrão 30 min).
 
 ## A etiqueta nem sempre tem QR code
 
@@ -143,13 +161,24 @@ A API sobe em `http://localhost:8000` (documentação interativa em
 ### Endpoints
 
 - `POST /batches/{chat_id}/images` — envia 1 foto (form-data, campo `file`)
-  para o lote do chat `chat_id`. Responde `{ count, ready, result? }`; `result`
-  só vem preenchido quando o lote atinge `BATCH_SIZE` (padrão 5).
+  para o lote do chat `chat_id`. Responde `{ count, ready, needs_answer?,
+  extraction_preview?, previous_booking?, previous_cliente? }`. Esses últimos
+  campos só vêm preenchidos quando o lote atinge `BATCH_SIZE` (padrão 5) —
+  nesse momento o serviço já identificou o contêiner/flex tank mas ainda não
+  gerou o PDF: falta a resposta de booking/cliente via `/chats/{chat_id}/answer`.
+- `POST /chats/{chat_id}/answer` — body `{ "text": "..." }` com a resposta em
+  texto livre do grupo. Responde `{ accepted, retry_question?, finalize? }`:
+  - `accepted: false` → `retry_question` tem o que reenviar ao grupo (texto
+    não reconhecido, ou o "não" da pergunta de reaproveitar booking/cliente).
+  - `accepted: true` → `finalize` traz tudo pronto: número do contêiner, do
+    flex tank, se foi encontrado/baixado no estoque, o PDF em base64
+    (`pdf_base64`/`pdf_filename`) e as 5 fotos.
 - `GET /batches/{chat_id}` — consulta quantas fotos já chegaram nesse lote.
-- `POST /batches/{chat_id}/reset` — descarta o lote em andamento (útil se o
-  grupo mandou fotos erradas).
+- `POST /batches/{chat_id}/reset` — descarta o lote e a pergunta pendente em
+  andamento (útil se o grupo mandou fotos erradas).
 - `POST /process` — versão "sem estado": processa 1+ fotos enviadas de uma vez
-  só (campo `files`), sem precisar do fluxo de acumular por `chat_id`.
+  só (campo `files`), sem passar pelo fluxo de booking/cliente/Supabase — só
+  a extração.
 - `GET /health` — healthcheck.
 
 ## Rodando os testes
@@ -172,29 +201,81 @@ Variáveis de ambiente (ver `.env.example`):
 |---|---|---|
 | `BATCH_SIZE` | `5` | Quantas fotos formam um lote/operação completa |
 | `BATCH_TTL_SECONDS` | `900` | Inatividade até um lote incompleto expirar |
+| `CONVERSATION_TTL_SECONDS` | `1800` | Inatividade até uma pergunta pendente (booking/cliente) expirar |
 | `STORE_BACKEND` | `memory` | `memory` (simples) ou `redis` (sobrevive a reinícios/múltiplos workers) |
 | `REDIS_URL` | — | Necessário se `STORE_BACKEND=redis` |
 | `OCR_LANG` | `por+eng` | Idiomas do Tesseract OCR |
+| `SUPABASE_URL` / `SUPABASE_KEY` | — | Deixe em branco para rodar sem Supabase (extração e PDF continuam funcionando, só não consulta estoque nem grava o dashboard) |
+| `SUPABASE_ESTOQUE_TABLE` / `SUPABASE_ESTOQUE_COL_*` | ver `.env.example` | Nomes de tabela/coluna da planilha de estoque (ajuste para bater com a tabela real) |
+| `SUPABASE_OPERACOES_TABLE` / `SUPABASE_STORAGE_BUCKET` | `operacoes` / `fotos-operacoes` | Tabela e bucket (de propriedade deste serviço) que alimentam o dashboard do cliente |
 
-Listas de e-mail destinatário e de responsáveis para @menção **ficam no
-workflow do n8n** (node "Config"), não neste serviço — assim quem opera o
+Listas de e-mail destinatário e de contatos telefônicos (para a DM) **ficam
+no workflow do n8n** (node "Config"), não neste serviço — assim quem opera o
 n8n consegue trocar essas listas sem depender de deploy do serviço Python.
+
+## Booking, cliente e estoque (Supabase)
+
+Booking e cliente são **obrigatórios**: o PDF só é gerado depois que alguém
+responde essa pergunta no grupo. Da segunda operação em diante no mesmo chat,
+o bot pergunta se quer reaproveitar o booking/cliente anterior — basta
+responder "sim", ou informar um booking/cliente novo diretamente.
+
+O número do flex tank identificado é consultado na tabela de estoque
+importada do Google Sheets (rode
+[`config/supabase_schema.sql`](config/supabase_schema.sql) no seu projeto
+Supabase e configure as variáveis `SUPABASE_*` — os nomes de tabela/coluna são
+configuráveis porque esse serviço não é dono dessa planilha):
+
+- **Encontrado** → marcado como baixado, e o PDF mostra "encontrado na base de
+  estoque — baixado".
+- **Não encontrado** → o PDF e a mensagem do grupo avisam "NÃO CONSTA na base
+  de estoque", para conferência manual — a operação segue normalmente (o
+  e-mail/PDF são gerados de qualquer forma).
+
+Sem `SUPABASE_URL`/`SUPABASE_KEY` configurados, essa consulta é simplesmente
+pulada (`flex_em_estoque: null`, "estoque não consultado" no PDF) — não é
+obrigatório ter Supabase pra usar o resto do sistema.
+
+## Dashboard do cliente (Supabase)
+
+Toda operação finalizada grava 1 linha na tabela `operacoes` do Supabase
+(nome configurável), com o número do contêiner, do flex tank, booking,
+cliente, se foi encontrado no estoque, e as 5 fotos (sobem para um bucket do
+Supabase Storage e ficam com URL pública salva em `fotos`, formato jsonb:
+`[{"role": "...", "filename": "...", "url": "..."}]`). Essa tabela é a base
+para montar uma tela de dashboard do cliente (não incluída neste repositório
+— é só a gravação dos dados; o front-end de consulta é um próximo passo).
+
+Isso é "melhor esforço": se o Supabase falhar ao gravar o dashboard, a
+operação não é interrompida — o e-mail com o PDF já foi gerado de qualquer
+jeito (a falha fica só registrada no log do serviço).
 
 ## Integração com o n8n
 
 1. Importe [`n8n/whatsapp-container-flex-workflow.json`](n8n/whatsapp-container-flex-workflow.json) no n8n.
 2. Ajuste o node **Config**: URL do `cntr-vision`, ID do grupo, e-mails
-   destinatários, telefones dos responsáveis (para @menção) e URL de envio do
+   destinatários, telefones dos contatos (para a DM) e URL de envio do
    seu provedor de WhatsApp (Evolution API/WAHA/etc.).
 3. Ajuste o node **Webhook - Mensagem WhatsApp** e o Code node **Extrai dados
    da mensagem** para o formato exato do payload que seu provedor envia — o
-   código já vem comentado indicando onde mexer.
-4. Configure a credencial SMTP no node **Envia e-mail com as 5 fotos**.
-5. Ajuste o node **Responde no grupo com menção** para o endpoint de envio de
-   mensagem do seu provedor (o formato do body de "menção" varia entre
-   Evolution API/WAHA/Baileys).
+   código já vem comentado indicando onde mexer, incluindo a detecção de
+   mensagem de texto (`is_text`) usada para reconhecer a resposta de
+   booking/cliente.
+4. Configure a credencial SMTP no node **Envia e-mail com o PDF**.
+5. Ajuste os nodes de HTTP Request que enviam mensagem ao WhatsApp (**Pergunta
+   no grupo**, **Reenvia pergunta no grupo**, **Responde no grupo**, **Envia
+   DM ao contato**) para o endpoint exato do seu provedor.
 6. Publique o webhook do n8n como o endpoint de callback do seu provedor de
    WhatsApp.
 
 Veja os comentários (sticky note) dentro do próprio workflow para mais
-detalhes de adaptação.
+detalhes de adaptação, incluindo como trocar a DM de texto por um envio do
+PDF como documento (endpoint de mídia do seu provedor).
+
+## Personalização do PDF (logo e rodapé)
+
+O cabeçalho do PDF usa a logo em `app/assets/logo_jw.png` (fundo já removido/
+transparente) e o rodapé mostra "Desenvolvido por Lourival®" em todas as
+páginas — ambos configurados em `app/report.py` (constantes `_LOGO_PATH` e
+`_FOOTER_TEXT`). Para trocar a logo, substitua esse arquivo PNG (mantenha o
+fundo transparente); para trocar o texto do rodapé, edite `_FOOTER_TEXT`.

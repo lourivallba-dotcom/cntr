@@ -33,6 +33,39 @@ class Settings(BaseSettings):
     # administrativo/flex tank quando não há QR code nem código de barras na etiqueta.
     patterns_file: str = str(Path(__file__).resolve().parent.parent / "config" / "patterns.yaml")
 
+    # --- Conversa (booking/cliente por operação) ---
+
+    # Tempo (segundos) que o serviço espera a resposta de booking/cliente (ou a
+    # confirmação de "usar a mesma reserva?") antes de descartar a pergunta
+    # pendente daquele chat.
+    conversation_ttl_seconds: int = 1800  # 30 minutos
+
+    # --- Layout do PDF ---
+
+    # Todas as fotos do relatório são recortadas (tipo "cover", sem distorcer)
+    # para essa mesma proporção largura:altura, para o PDF ficar com um padrão
+    # visual único independente de a foto original ser retrato ou paisagem.
+    report_photo_aspect_ratio: float = 4 / 3  # largura / altura
+
+    # --- Supabase (estoque de flex tank importado do Google Sheets + dashboard) ---
+
+    supabase_url: str | None = None
+    supabase_key: str | None = None
+
+    # Tabela/colunas do estoque de flex tank (planilha importada). Nomes
+    # configuráveis porque o serviço não é dono dessa tabela — ajuste aqui para
+    # bater com as colunas reais da planilha, sem precisar mexer no código.
+    supabase_estoque_table: str = "estoque_flex"
+    supabase_estoque_col_flex_number: str = "numero_flex"
+    supabase_estoque_col_status: str = "status"
+    supabase_estoque_status_em_estoque: str = "em_estoque"
+    supabase_estoque_status_baixado: str = "baixado"
+
+    # Tabela (de propriedade deste serviço) que alimenta o dashboard do
+    # cliente: 1 linha por contêiner processado, com as fotos anexadas.
+    supabase_operacoes_table: str = "operacoes"
+    supabase_storage_bucket: str = "fotos-operacoes"
+
 
 @lru_cache
 def get_settings() -> Settings:
