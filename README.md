@@ -206,7 +206,7 @@ Variáveis de ambiente (ver `.env.example`):
 | `REDIS_URL` | — | Necessário se `STORE_BACKEND=redis` |
 | `OCR_LANG` | `por+eng` | Idiomas do Tesseract OCR |
 | `SUPABASE_URL` / `SUPABASE_KEY` | — | Deixe em branco para rodar sem Supabase (extração e PDF continuam funcionando, só não consulta estoque nem grava o dashboard) |
-| `SUPABASE_ESTOQUE_TABLE` / `SUPABASE_ESTOQUE_COL_*` | ver `.env.example` | Nomes de tabela/coluna da planilha de estoque (ajuste para bater com a tabela real) |
+| `SUPABASE_ESTOQUE_TABLES` / `SUPABASE_ESTOQUE_COL_*` | ver `.env.example` | Lista (separada por vírgula) das tabelas/abas de estoque a consultar, e nomes de coluna (ajuste para bater com a planilha real) |
 | `SUPABASE_OPERACOES_TABLE` / `SUPABASE_STORAGE_BUCKET` | `operacoes` / `fotos-operacoes` | Tabela e bucket (de propriedade deste serviço) que alimentam o dashboard do cliente |
 
 Listas de e-mail destinatário e de contatos telefônicos (para a DM) **ficam
@@ -220,17 +220,25 @@ responde essa pergunta no grupo. Da segunda operação em diante no mesmo chat,
 o bot pergunta se quer reaproveitar o booking/cliente anterior — basta
 responder "sim", ou informar um booking/cliente novo diretamente.
 
-O número do flex tank identificado é consultado na tabela de estoque
-importada do Google Sheets (rode
+O número do flex tank identificado é consultado nas tabelas de estoque
+importadas do Google Sheets (rode
 [`config/supabase_schema.sql`](config/supabase_schema.sql) no seu projeto
 Supabase e configure as variáveis `SUPABASE_*` — os nomes de tabela/coluna são
-configuráveis porque esse serviço não é dono dessa planilha):
+configuráveis porque esse serviço não é dono dessa planilha). A planilha tem
+**várias abas**: liste todas em `SUPABASE_ESTOQUE_TABLES` (separadas por
+vírgula, uma tabela do Supabase por aba) — o serviço procura o número em cada
+uma, na ordem, até achar:
 
-- **Encontrado** → marcado como baixado, e o PDF mostra "encontrado na base de
-  estoque — baixado".
-- **Não encontrado** → o PDF e a mensagem do grupo avisam "NÃO CONSTA na base
-  de estoque", para conferência manual — a operação segue normalmente (o
-  e-mail/PDF são gerados de qualquer forma).
+- **Encontrado** → marcado como baixado na aba/tabela onde apareceu, e o PDF
+  mostra "encontrado na base de estoque — baixado (aba: nome_da_tabela)".
+- **Não encontrado em nenhuma aba** → o PDF e a mensagem do grupo avisam "NÃO
+  CONSTA na base de estoque", para conferência manual — a operação segue
+  normalmente (o e-mail/PDF são gerados de qualquer forma).
+
+Isso assume que todas as abas seguem o mesmo padrão de colunas (mesmo nome
+para "número do flex" e "status" em todas). Se alguma aba tiver colunas
+diferentes das outras, essa consulta genérica não serve — avise que aí
+precisamos tratar aba por aba.
 
 Sem `SUPABASE_URL`/`SUPABASE_KEY` configurados, essa consulta é simplesmente
 pulada (`flex_em_estoque: null`, "estoque não consultado" no PDF) — não é

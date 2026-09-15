@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Any
 
-from app.config import get_settings
+from app.config import get_settings, load_estoque_tables
 
 
 @lru_cache
@@ -33,34 +33,39 @@ def is_configured() -> bool:
     return _get_client() is not None
 
 
-def find_flex_in_estoque(flex_number: str) -> dict[str, Any] | None:
-    """Procura o número do flex tank na tabela de estoque. None se não
-    configurado OU se não encontrar (o chamador decide a mensagem certa para
-    cada caso usando is_configured())."""
+def find_flex_in_estoque(flex_number: str) -> tuple[dict[str, Any], str] | None:
+    """Procura o número do flex tank em cada tabela/aba de estoque configurada
+    (SUPABASE_ESTOQUE_TABLES), na ordem. Retorna (linha, nome_da_tabela) da
+    primeira que encontrar, ou None se não configurado OU não encontrar em
+    nenhuma (o chamador decide a mensagem certa usando is_configured())."""
     client = _get_client()
     if client is None:
         return None
     settings = get_settings()
-    resp = (
-        client.table(settings.supabase_estoque_table)
-        .select("*")
-        .eq(settings.supabase_estoque_col_flex_number, flex_number)
-        .limit(1)
-        .execute()
-    )
-    rows = resp.data or []
-    return rows[0] if rows else None
+    for table in load_estoque_tables():
+        resp = (
+            client.table(table)
+            .select("*")
+            .eq(settings.supabase_estoque_col_flex_number, flex_number)
+            .limit(1)
+            .execute()
+        )
+        rows = resp.data or []
+        if rows:
+            return rows[0], table
+    return None
 
 
-def marcar_flex_baixado(flex_number: str) -> bool:
-    """Atualiza o status do flex tank no estoque para 'baixado'. Retorna True
-    se conseguiu atualizar alguma linha."""
+def marcar_flex_baixado(flex_number: str, table: str) -> bool:
+    """Atualiza o status do flex tank para 'baixado' na tabela/aba onde ele foi
+    encontrado (`table`, devolvido por find_flex_in_estoque). Retorna True se
+    conseguiu atualizar alguma linha."""
     client = _get_client()
     if client is None:
         return False
     settings = get_settings()
     resp = (
-        client.table(settings.supabase_estoque_table)
+        client.table(table)
         .update({settings.supabase_estoque_col_status: settings.supabase_estoque_status_baixado})
         .eq(settings.supabase_estoque_col_flex_number, flex_number)
         .execute()
@@ -92,6 +97,7 @@ def criar_registro_operacao(
     flex_em_estoque: bool | None,
     fotos: list[dict[str, str]],
     warnings: list[str],
+    flex_estoque_tabela: str | None = None,
 ) -> dict[str, Any] | None:
     """Insere 1 linha na tabela `operacoes` (dashboard do cliente). None se o
     Supabase não estiver configurado."""
@@ -108,6 +114,7 @@ def criar_registro_operacao(
         "flex_number": flex_number,
         "flex_number_source": flex_number_source,
         "flex_em_estoque": flex_em_estoque,
+        "flex_estoque_tabela": flex_estoque_tabela,
         "fotos": fotos,  # jsonb: [{"role": "...", "url": "...", "filename": "..."}]
         "warnings": warnings,
         "criado_em": datetime.now(timezone.utc).isoformat(),

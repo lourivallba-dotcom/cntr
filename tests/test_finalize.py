@@ -34,9 +34,15 @@ def test_finalize_without_supabase_configured(monkeypatch, label_with_qr_bytes, 
 def test_finalize_flex_found_in_estoque_marks_baixado(monkeypatch, label_with_qr_bytes, door_bytes, internal_bytes):
     baixado_calls = []
     monkeypatch.setattr(finalize_module.supabase_client, "is_configured", lambda: True)
-    monkeypatch.setattr(finalize_module.supabase_client, "find_flex_in_estoque", lambda flex: {"numero_flex": flex})
     monkeypatch.setattr(
-        finalize_module.supabase_client, "marcar_flex_baixado", lambda flex: baixado_calls.append(flex) or True
+        finalize_module.supabase_client,
+        "find_flex_in_estoque",
+        lambda flex: ({"numero_flex": flex}, "estoque_20000l"),
+    )
+    monkeypatch.setattr(
+        finalize_module.supabase_client,
+        "marcar_flex_baixado",
+        lambda flex, table: baixado_calls.append((flex, table)) or True,
     )
     monkeypatch.setattr(finalize_module.supabase_client, "upload_foto", lambda **kw: "https://example.com/foto.jpg")
     monkeypatch.setattr(finalize_module.supabase_client, "criar_registro_operacao", lambda **kw: {"id": 1})
@@ -47,7 +53,8 @@ def test_finalize_flex_found_in_estoque_marks_baixado(monkeypatch, label_with_qr
     )
 
     assert out.flex_em_estoque is True
-    assert baixado_calls == [result.flex_number]
+    assert out.flex_estoque_tabela == "estoque_20000l"
+    assert baixado_calls == [(result.flex_number, "estoque_20000l")]
     assert "numero_do_flex_nao_consta_na_base_de_estoque" not in out.warnings
 
 
@@ -56,7 +63,9 @@ def test_finalize_flex_not_found_in_estoque_warns(monkeypatch, label_with_qr_byt
     monkeypatch.setattr(finalize_module.supabase_client, "find_flex_in_estoque", lambda flex: None)
     baixado_calls = []
     monkeypatch.setattr(
-        finalize_module.supabase_client, "marcar_flex_baixado", lambda flex: baixado_calls.append(flex) or True
+        finalize_module.supabase_client,
+        "marcar_flex_baixado",
+        lambda flex, table: baixado_calls.append((flex, table)) or True,
     )
     monkeypatch.setattr(finalize_module.supabase_client, "upload_foto", lambda **kw: "https://example.com/foto.jpg")
     monkeypatch.setattr(finalize_module.supabase_client, "criar_registro_operacao", lambda **kw: {"id": 1})
@@ -67,6 +76,7 @@ def test_finalize_flex_not_found_in_estoque_warns(monkeypatch, label_with_qr_byt
     )
 
     assert out.flex_em_estoque is False
+    assert out.flex_estoque_tabela is None
     assert baixado_calls == []  # não baixa o que não foi encontrado
     assert "numero_do_flex_nao_consta_na_base_de_estoque" in out.warnings
 

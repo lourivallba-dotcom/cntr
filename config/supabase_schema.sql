@@ -1,9 +1,9 @@
 -- Schema do Supabase usado pelo cntr-vision.
 --
--- Rode isto no SQL Editor do seu projeto Supabase. A tabela `estoque_flex`
--- (a planilha do Google Sheets importada) NÃO é criada aqui — ela já existe
--- e é de vocês; ajuste os nomes em app/config.py (ou via variáveis de
--- ambiente SUPABASE_ESTOQUE_*) para bater com as colunas reais dela.
+-- Rode isto no SQL Editor do seu projeto Supabase. A(s) tabela(s) de estoque
+-- (a planilha do Google Sheets importada — uma tabela por aba) NÃO são
+-- criadas aqui — elas já existem e são de vocês; ajuste os nomes via
+-- variáveis de ambiente SUPABASE_ESTOQUE_* para bater com as colunas reais.
 
 -- 1) Tabela do dashboard do cliente: 1 linha por contêiner processado.
 create table if not exists public.operacoes (
@@ -16,6 +16,7 @@ create table if not exists public.operacoes (
   flex_number text,
   flex_number_source text,
   flex_em_estoque boolean,
+  flex_estoque_tabela text,  -- qual aba/tabela de estoque tinha esse flex (se encontrado)
   fotos jsonb not null default '[]'::jsonb,   -- [{"role": "...", "filename": "...", "url": "..."}]
   warnings jsonb not null default '[]'::jsonb,
   criado_em timestamptz not null default now()
@@ -38,13 +39,21 @@ on conflict (id) do nothing;
 -- (ex: uma tela de dashboard), aí sim será preciso habilitar RLS e criar
 -- policies de leitura para `operacoes`.
 
--- 3) Referência esperada na tabela `estoque_flex` (já existente, importada
--- do Google Sheets) — apenas os nomes usados pelo serviço:
+-- 3) Referência esperada nas tabelas de estoque (já existentes, uma por aba
+-- da planilha do Google Sheets) — apenas os nomes usados pelo serviço, e
+-- assumindo que TODAS as abas/tabelas seguem o mesmo padrão de colunas:
 --   numero_flex  (text)   -- valor lido do QR/código de barras/OCR da etiqueta
 --   status       (text)   -- 'em_estoque' | 'baixado' (valores configuráveis)
 -- Se os nomes reais forem diferentes, configure em .env:
---   SUPABASE_ESTOQUE_TABLE=nome_da_sua_tabela
+--   SUPABASE_ESTOQUE_TABLES=tabela_aba1,tabela_aba2,tabela_aba3
 --   SUPABASE_ESTOQUE_COL_FLEX_NUMBER=nome_da_coluna_do_numero_do_flex
 --   SUPABASE_ESTOQUE_COL_STATUS=nome_da_coluna_de_status
 --   SUPABASE_ESTOQUE_STATUS_EM_ESTOQUE=valor_que_significa_em_estoque
 --   SUPABASE_ESTOQUE_STATUS_BAIXADO=valor_que_significa_baixado
+--
+-- O serviço procura o número do flex em cada tabela da lista, na ordem, até
+-- achar — pare pra pensar na ordem se o mesmo número puder existir (por
+-- engano) em mais de uma aba: a primeira tabela da lista tem prioridade.
+-- Se as abas tiverem nomes de coluna DIFERENTES entre si (não só nomes de
+-- tabela diferentes), essa consulta genérica não serve — avise que nesse
+-- caso precisamos de uma função por aba em vez de uma lista simples.

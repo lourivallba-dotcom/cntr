@@ -23,6 +23,7 @@ class FinalizeResult:
     booking: str
     cliente: str
     flex_em_estoque: bool | None  # None = não consultado (Supabase não configurado)
+    flex_estoque_tabela: str | None  # aba/tabela onde foi encontrado, se encontrado
     warnings: list[str]
     pdf_base64: str
     pdf_filename: str
@@ -31,11 +32,13 @@ class FinalizeResult:
 
 def finalize_operation(*, chat_id: str, extraction: ProcessResult, booking: str, cliente: str) -> FinalizeResult:
     flex_em_estoque: bool | None = None
+    flex_estoque_tabela: str | None = None
     if extraction.flex_number and supabase_client.is_configured():
-        estoque_row = supabase_client.find_flex_in_estoque(extraction.flex_number)
-        flex_em_estoque = estoque_row is not None
-        if flex_em_estoque:
-            supabase_client.marcar_flex_baixado(extraction.flex_number)
+        found = supabase_client.find_flex_in_estoque(extraction.flex_number)
+        flex_em_estoque = found is not None
+        if found is not None:
+            _, flex_estoque_tabela = found
+            supabase_client.marcar_flex_baixado(extraction.flex_number, flex_estoque_tabela)
 
     warnings = list(extraction.warnings)
     if flex_em_estoque is False:
@@ -53,6 +56,7 @@ def finalize_operation(*, chat_id: str, extraction: ProcessResult, booking: str,
         booking=booking,
         cliente=cliente,
         flex_em_estoque=flex_em_estoque,
+        flex_estoque_tabela=flex_estoque_tabela,
         warnings=extraction.warnings,
         photos=report_photos,
     )
@@ -64,6 +68,7 @@ def finalize_operation(*, chat_id: str, extraction: ProcessResult, booking: str,
         cliente=cliente,
         extraction=extraction,
         flex_em_estoque=flex_em_estoque,
+        flex_estoque_tabela=flex_estoque_tabela,
         report_photos=report_photos,
     )
 
@@ -75,6 +80,7 @@ def finalize_operation(*, chat_id: str, extraction: ProcessResult, booking: str,
         booking=booking,
         cliente=cliente,
         flex_em_estoque=flex_em_estoque,
+        flex_estoque_tabela=flex_estoque_tabela,
         warnings=warnings,
         pdf_base64=base64.b64encode(pdf_bytes).decode("ascii"),
         pdf_filename=pdf_filename,
@@ -98,6 +104,7 @@ def _save_dashboard_record(
     cliente: str,
     extraction: ProcessResult,
     flex_em_estoque: bool | None,
+    flex_estoque_tabela: str | None,
     report_photos: list[ReportPhoto],
 ) -> None:
     """Sobe as fotos e grava a operação no Supabase — best effort: se o
@@ -122,6 +129,7 @@ def _save_dashboard_record(
             flex_number=extraction.flex_number,
             flex_number_source=extraction.flex_number_source,
             flex_em_estoque=flex_em_estoque,
+            flex_estoque_tabela=flex_estoque_tabela,
             fotos=fotos_meta,
             warnings=extraction.warnings,
         )

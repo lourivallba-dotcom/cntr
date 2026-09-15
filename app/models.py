@@ -72,6 +72,7 @@ class FinalizeResultOut(BaseModel):
     booking: str
     cliente: str
     flex_em_estoque: bool | None  # None = Supabase não configurado (não consultado)
+    flex_estoque_tabela: str | None = None  # aba/tabela onde foi encontrado, se encontrado
     warnings: list[str]
     pdf_base64: str
     pdf_filename: str

@@ -52,10 +52,13 @@ class Settings(BaseSettings):
     supabase_url: str | None = None
     supabase_key: str | None = None
 
-    # Tabela/colunas do estoque de flex tank (planilha importada). Nomes
-    # configuráveis porque o serviço não é dono dessa tabela — ajuste aqui para
-    # bater com as colunas reais da planilha, sem precisar mexer no código.
-    supabase_estoque_table: str = "estoque_flex"
+    # Tabela(s)/colunas do estoque de flex tank (planilha do Google Sheets
+    # importada pro Supabase). A planilha tem várias abas — se cada aba virou
+    # uma tabela separada no Supabase, liste todas aqui separadas por vírgula
+    # (ex: "estoque_20000l,estoque_24000l,estoque_reservado"); o serviço
+    # procura o número do flex em cada uma, na ordem, até achar. Nomes
+    # configuráveis porque o serviço não é dono dessas tabelas.
+    supabase_estoque_tables: str = "estoque_flex"
     supabase_estoque_col_flex_number: str = "numero_flex"
     supabase_estoque_col_status: str = "status"
     supabase_estoque_status_em_estoque: str = "em_estoque"
@@ -87,6 +90,12 @@ def load_flex_patterns() -> list[str]:
         data = yaml.safe_load(fh) or {}
     patterns = data.get("flex_number_patterns", [])
     return [p for p in patterns if isinstance(p, str) and p.strip()]
+
+
+def load_estoque_tables() -> list[str]:
+    """Lista de tabelas/abas do estoque a consultar, na ordem configurada."""
+    settings = get_settings()
+    return [t.strip() for t in settings.supabase_estoque_tables.split(",") if t.strip()]
 
 
 def load_label_keywords() -> list[str]:

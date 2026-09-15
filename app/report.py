@@ -87,6 +87,7 @@ def build_container_pdf(
     booking: str,
     cliente: str,
     flex_em_estoque: bool | None,
+    flex_estoque_tabela: str | None = None,
     warnings: list[str],
     photos: list[ReportPhoto],
 ) -> bytes:
@@ -123,7 +124,8 @@ def build_container_pdf(
     if flex_em_estoque is None:
         estoque_txt = "não consultado"
     elif flex_em_estoque:
-        estoque_txt = "encontrado na base de estoque — baixado"
+        aba_txt = f" (aba: {flex_estoque_tabela})" if flex_estoque_tabela else ""
+        estoque_txt = f"encontrado na base de estoque — baixado{aba_txt}"
     else:
         estoque_txt = "NÃO CONSTA na base de estoque"
 
