@@ -75,7 +75,28 @@ services:
       - evolution-api
     restart: unless-stopped
 
+  # Orquestrador do fluxo (recebe as fotos do Evolution API, chama o
+  # cntr-vision, manda e-mail/DM). Acesse http://localhost:5678
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: "http://localhost:5678/"
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: "America/Sao_Paulo"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - cntr-vision
+      - evolution-api
+    restart: unless-stopped
+
 volumes:
   evolution_postgres_data:
   evolution_redis_data:
   evolution_instances:
+  n8n_data:
