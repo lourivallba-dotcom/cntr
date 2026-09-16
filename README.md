@@ -14,10 +14,11 @@ Workflow para [n8n](https://n8n.io) que fica "dentro" de um grupo de WhatsApp e:
 3. Se não conseguir decidir sozinho a qual booking a montagem pertence (mais de um candidato em
    aberto do mesmo armador), **pergunta no grupo** e espera alguém responder com o número do
    booking antes de fechar a operação.
-4. Ao fechar cada operação, além do e-mail e da mensagem no grupo, também manda um **PDF-resumo**
-   (container, flex tanque, booking, planta, armador, progresso, obs, data/hora) como documento
-   por WhatsApp para uma lista de números configurável (`pdfRecipients`), separada da lista de
-   responsáveis marcados no grupo.
+4. Ao fechar cada operação, além do e-mail e da mensagem no grupo, também manda um **PDF** —
+   página de resumo (container, flex tanque, booking, planta, armador, progresso, obs, data/hora)
+   seguida de **uma página por foto** (a foto em si, com legenda) — como documento por WhatsApp
+   para uma lista de números configurável (`pdfRecipients`), separada da lista de responsáveis
+   marcados no grupo.
 
 ## ⚠️ Decisões assumidas — leia antes de usar
 
@@ -32,7 +33,7 @@ precisa mudar**:
 | Como casar a montagem com o booking | Lê o armador (texto/logo) na foto da porta e cruza com os bookings **em aberto** daquele armador no mesmo grupo. 1 candidato → segue automático. 0 candidatos → segue sem booking, avisando "NÃO LOCALIZADO". 2+ candidatos → pergunta no grupo e espera resposta com o número do booking. |
 | Confirmação antes de publicar | **Não** espera um "confirma"/"sim" explícito — assim que o booking é decidido (automático ou por resposta no grupo), já publica o resultado e manda o e-mail. |
 | Contagem de progresso | +1 na quantidade montada a cada operação concluída para aquele booking, com aviso do tipo "Booking 274202662: 3 de 10 montados" na mesma mensagem do grupo. |
-| PDF por WhatsApp | Além do e-mail, um PDF-resumo (texto, sem as fotos embutidas) é enviado como documento para os números em `pdfRecipients.numbers` — uma lista separada da lista de responsáveis marcados no grupo. Se você quiser que sejam os mesmos números, é só repetir os telefones nas duas listas. |
+| PDF por WhatsApp | Além do e-mail, um PDF é enviado como documento para os números em `pdfRecipients.numbers` — uma lista separada da lista de responsáveis marcados no grupo. O PDF tem uma página de resumo (números, booking, progresso) seguida de uma página por foto (a foto em si, com legenda da categoria). Se você quiser que sejam os mesmos números da lista de responsáveis, é só repetir os telefones nas duas listas. |
 
 Se qualquer uma dessas suposições estiver errada, é só pedir o ajuste — a lógica de cada uma
 está isolada em nodes/queries específicas, fácil de alterar.
@@ -200,8 +201,11 @@ detalhes de parâmetros podem variar entre versões do n8n. Confira especialment
   (`mediatype`, `media`, `fileName`) para enviar um documento variam mais entre versões da
   Evolution API do que o envio de texto. Confira no Swagger da sua instância e ajuste este node
   se o PDF não chegar. O PDF em si (gerado à mão dentro do node "Montar PDF do relatorio", sem
-  nenhuma biblioteca externa) foi testado e validado localmente antes de entrar no workflow —
-  só o transporte até o WhatsApp depende da sua versão da Evolution API.
+  nenhuma biblioteca externa — inclusive as imagens embutidas via DCTDecode) foi testado e
+  validado localmente (extração de texto e re-decodificação das imagens byte a byte, conferindo
+  dimensão e cor) antes de entrar no workflow — só o transporte até o WhatsApp depende da sua
+  versão da Evolution API. Fotos que não sejam JPEG (raro vindo do WhatsApp) são listadas como
+  "não incluídas" na página de resumo em vez de quebrar a geração do PDF.
 
 ## Estrutura do projeto
 
