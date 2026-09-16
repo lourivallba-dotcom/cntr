@@ -31,5 +31,10 @@
   "responsibles": [
     { "name": "Responsavel 1", "phone": "5511999999999" },
     { "name": "Responsavel 2", "phone": "5511888888888" }
-  ]
+  ],
+
+  "pdfRecipients": {
+    "_comment": "Numeros (DDI+DDD+numero, so digitos) que recebem por WhatsApp (documento PDF) o resumo de cada operacao concluida - alem do e-mail e da marcacao no grupo. Pode ser diferente da lista de 'responsibles'. Deixe [] para nao enviar PDF nenhum.",
+    "numbers": ["5511999999999"]
+  }
 }

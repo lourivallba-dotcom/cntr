@@ -63,6 +63,41 @@ const HELPER_PRELUDE = [
 ].join("\n");
 
 // ---------------------------------------------------------------------------
+// Helper JS embutido no Code node que monta o PDF-resumo (sem depender de
+// nenhuma lib externa - o Code node do n8n nao tem acesso garantido a npm
+// packages arbitrarios). Gera um PDF valido de 1 pagina, texto simples,
+// fonte Helvetica com WinAnsiEncoding (cobre acentos comuns do portugues).
+// Testado e validado localmente com pdf-parse antes de ser embutido aqui.
+// ---------------------------------------------------------------------------
+const HELPER_PDF = [
+  "function toLatin1(str) { let o=''; for (const ch of String(str)) { const c = ch.codePointAt(0); o += c<=255?ch:'?'; } return o; }",
+  "function escapePdfString(str) { return str.replace(/\\\\/g,'\\\\\\\\').replace(/\\(/g,'\\\\(').replace(/\\)/g,'\\\\)'); }",
+  "function buildSimplePdf(title, lines) {",
+  "  const marginLeft=50, topY=800, fontSizeTitle=14, fontSizeBody=11, leading=16;",
+  "  const titleSafe = escapePdfString(toLatin1(title));",
+  "  const lineOps = lines.map(function(line){ return '(' + escapePdfString(toLatin1(line)) + ') Tj T*'; }).join('\\n');",
+  "  const content = 'BT /F1 ' + fontSizeTitle + ' Tf ' + marginLeft + ' ' + topY + ' Td (' + titleSafe + ') Tj ET\\n' +",
+  "    'BT /F1 ' + fontSizeBody + ' Tf ' + marginLeft + ' ' + (topY-30) + ' Td ' + leading + ' TL\\n' + lineOps + '\\nET';",
+  "  const contentBytes = content.length;",
+  "  const objects = [];",
+  "  objects.push('<< /Type /Catalog /Pages 2 0 R >>');",
+  "  objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');",
+  "  objects.push('<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 595 842] /Contents 5 0 R >>');",
+  "  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');",
+  "  objects.push('<< /Length ' + contentBytes + ' >>\\nstream\\n' + content + '\\nendstream');",
+  "  let pdf = '%PDF-1.4\\n';",
+  "  const offsets = [0];",
+  "  objects.forEach(function(obj, i){ offsets.push(pdf.length); pdf += (i+1) + ' 0 obj\\n' + obj + '\\nendobj\\n'; });",
+  "  const xrefOffset = pdf.length;",
+  "  const total = objects.length + 1;",
+  "  pdf += 'xref\\n0 ' + total + '\\n0000000000 65535 f \\n';",
+  "  for (let i=1;i<total;i++) pdf += String(offsets[i]).padStart(10,'0') + ' 00000 n \\n';",
+  "  pdf += 'trailer\\n<< /Size ' + total + ' /Root 1 0 R >>\\nstartxref\\n' + xrefOffset + '\\n%%EOF';",
+  "  return Buffer.from(pdf, 'latin1');",
+  "}",
+].join("\n");
+
+// ---------------------------------------------------------------------------
 // Prompt e schema de tool-use enviados ao Claude Vision.
 // ---------------------------------------------------------------------------
 const SYSTEM_PROMPT = `Voce e um assistente que analisa imagens enviadas em um grupo de WhatsApp de uma operacao logistica de flex tanque (flexitank) dentro de containers maritimos. Duas coisas diferentes podem ser enviadas:
@@ -829,6 +864,76 @@ link(nBuscarFotosLote, nConsolidar);
 
 const nEmail = add(emailNode("Enviar e-mail com fotos", pos("p2", LANE_P2)));
 link(nConsolidar, nEmail);
+
+// --- PDF-resumo enviado por WhatsApp para numeros parametrizados -----------
+const nMontarPdf = add(
+  code(
+    "Montar PDF do relatorio",
+    [
+      HELPER_PDF,
+      "const items = $input.all();",
+      "const out = [];",
+      "for (const item of items) {",
+      "  const j = item.json;",
+      "  const lines = [];",
+      "  lines.push('Container: ' + (j.containerNumber || 'NAO IDENTIFICADO'));",
+      "  lines.push('Flex tanque: ' + (j.flexTankNumber || 'NAO IDENTIFICADO') + (j.flexLotNo ? (' (Lot No: ' + j.flexLotNo + ')') : ''));",
+      "  if (j.booking) {",
+      "    lines.push('Booking: ' + j.booking + ' - Planta: ' + (j.loadingPlant || '-') + ' - Armador: ' + (j.carrier || '-'));",
+      "    lines.push('Progresso: ' + ((Number(j.qtyAssembled)||0)+1) + ' de ' + (j.qtyContainers || '?') + ' montados.');",
+      "    if (j.notes) lines.push('Obs: ' + j.notes);",
+      "  } else {",
+      "    lines.push('Booking: NAO LOCALIZADO - favor confirmar manualmente.');",
+      "  }",
+      "  lines.push('Grupo: ' + (j.groupName || j.groupId));",
+      "  lines.push('Enviado por: ' + (j.senderName || '-'));",
+      "  lines.push('Data/hora: ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));",
+      "  const pdfBuffer = buildSimplePdf('Relatorio de Operacao - Flex Tanque', lines);",
+      "  out.push({ json: { ...j, pdfBase64: pdfBuffer.toString('base64') } });",
+      "}",
+      "return out;",
+    ],
+    pos("p2", LANE_P2),
+  ),
+);
+link(nConsolidar, nMontarPdf);
+
+const nExpandirDestinatariosPdf = add(
+  code(
+    "Montar lista de envio do PDF",
+    [
+      `const PDF_RECIPIENTS = ${JSON.stringify((cfg.pdfRecipients && cfg.pdfRecipients.numbers) || [])};`,
+      "const items = $input.all();",
+      "const out = [];",
+      "for (const item of items) {",
+      "  const j = item.json;",
+      "  for (const phone of PDF_RECIPIENTS) {",
+      "    out.push({ json: { phone, pdfBase64: j.pdfBase64, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber } });",
+      "  }",
+      "}",
+      "return out;",
+    ],
+    pos("p2", LANE_P2),
+  ),
+);
+link(nMontarPdf, nExpandirDestinatariosPdf);
+
+const nEnviarPdf = add(
+  httpNode(
+    "Enviar PDF por WhatsApp",
+    {
+      method: "POST",
+      url: `${EVOLUTION_URL}/message/sendMedia/${EVOLUTION_INSTANCE}`,
+      jsonBodyExpr:
+        "={{ JSON.stringify({ number: $json.phone, mediatype: 'document', mimetype: 'application/pdf', fileName: 'relatorio-' + ($json.containerNumber || 'operacao') + '.pdf', media: $json.pdfBase64, caption: 'Relatorio da operacao - Container ' + ($json.containerNumber || 'N/D') + ' / Flex ' + ($json.flexTankNumber || 'N/D') }) }}",
+      credName: "Evolution API Key",
+      credId: "1",
+      notes: "Endpoint/campos de envio de midia variam entre versoes da Evolution API - confira no /docs da sua instancia.",
+    },
+    pos("p2", LANE_P2),
+  ),
+);
+link(nExpandirDestinatariosPdf, nEnviarPdf);
 
 const nMontarMensagemGrupo = add(
   code(
