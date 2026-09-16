@@ -1,0 +1,1572 @@
+{
+  "name": "Agente CTA - WhatsApp (Programacao + Flex Tanque)",
+  "nodes": [
+    {
+      "id": "55350415-ed01-45b3-b6ff-eb14fd9dc1be",
+      "name": "Webhook Evolution",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ],
+      "webhookId": "c3a256e5-bab8-4585-8089-833dbfa3686d",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution-webhook",
+        "responseMode": "onReceived",
+        "responseCode": 200,
+        "options": {}
+      }
+    },
+    {
+      "id": "8187e24e-a380-4050-a031-1cbad2278c82",
+      "name": "Normalizar mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const first = $input.first().json;\nconst body = first.body || first;\nconst data = body.data || body;\nconst key = data.key || {};\nconst remoteJid = key.remoteJid || '';\nconst fromMe = !!key.fromMe;\nconst messageId = key.id || '';\nconst participant = key.participant || remoteJid || '';\nconst pushName = data.pushName || '';\nconst message = data.message || {};\nconst viewOnce = message.viewOnceMessageV2 && message.viewOnceMessageV2.message;\nconst imageMessage = message.imageMessage || (viewOnce && viewOnce.imageMessage) || null;\nconst textBody = message.conversation || (message.extendedTextMessage && message.extendedTextMessage.text) || '';\nconst isGroup = remoteJid.endsWith('@g.us');\nconst ALLOWED_GROUPS = [\"EXEMPLO-ID-DO-GRUPO@g.us\"];\nlet kind = 'ignore';\nif (isGroup && !fromMe) { if (imageMessage) kind = 'image'; else if (textBody) kind = 'text'; }\nif (kind !== 'ignore' && ALLOWED_GROUPS.length && !ALLOWED_GROUPS.includes(remoteJid)) kind = 'ignore';\nreturn [{ json: { kind, groupId: remoteJid, senderId: participant, senderName: pushName, messageId, mimeType: imageMessage ? (imageMessage.mimetype || 'image/jpeg') : '', textBody } }];"
+      }
+    },
+    {
+      "id": "e1287d3e-2c5b-40db-8060-aafd060ec779",
+      "name": "Gate - Eh imagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst out = [];\nfor (const item of items) { if (item.json.kind === 'image') out.push(item); }\nreturn out;"
+      }
+    },
+    {
+      "id": "b2c49eef-c412-4e2d-8f14-27c10243dacf",
+      "name": "Buscar midia base64",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        0
+      ],
+      "notes": "Ajuste o path conforme a versao da sua Evolution API - veja README.",
+      "parameters": {
+        "method": "POST",
+        "url": "https://SEU-EVOLUTION-API.exemplo.com/chat/getBase64FromMediaMessage/nome-da-instancia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { key: { id: $json.messageId, remoteJid: $json.groupId, fromMe: false, participant: $json.senderId } } }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "Evolution API Key"
+        }
+      }
+    },
+    {
+      "id": "3eb0f4ee-0ec9-4b89-8967-ee53e09475f5",
+      "name": "Vision - Classificar imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        0
+      ],
+      "notes": "",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"claude-sonnet-5\", max_tokens: 1200, system: \"Voce e um assistente que analisa imagens enviadas em um grupo de WhatsApp de uma operacao logistica de flex tanque (flexitank) dentro de containers maritimos. Duas coisas diferentes podem ser enviadas:\\n\\n1) Uma foto/print de uma PLANILHA DE PROGRAMACAO (tabela com colunas como: Recebimento da programacao, BOOKING, QTD CNTR, Data de carregamento, Data da MONTAGEM DO FLEX, Data da coleta do cntr vazio, Planta de carregamento, ARMADOR, OBS). Quando for esse o caso, use document_type=\\\"programacao\\\" e preencha programacao_rows com uma entrada para CADA booking/linha visivel na tabela (leia todas as linhas, nao so a primeira). Copie as datas exatamente como aparecem, no formato DD/MM/AAAA.\\n\\n2) Uma FOTO DE UMA OPERACAO DE MONTAGEM DE FLEX TANQUE. Quando for esse o caso, use document_type=\\\"foto_operacao\\\" e classifique em uma destas categorias (photo_type):\\n   - etiqueta: etiqueta branca colada no flex tanque (campos como PRO NAME, PRO SPEC, Lot No, Material). IMPORTANTE: a etiqueta NEM SEMPRE tem QR code ou codigo de barras - as vezes so tem texto impresso. O identificador principal do flex tanque tem formato variavel (ex: pode comecar com \\\"DWH\\\" seguido de numeros/letras, mas outros prefixos tambem existem) - leia com atencao e coloque em flex_tank_code_text. O campo \\\"Lot No\\\" e diferente e vai em flex_lot_no_text.\\n   - porta: foto da porta/parte externa do container fechado, mostrando o numero do container pintado (padrao ISO 6346: 4 letras + 7 digitos) e o nome/logo do armador (ex: MAERSK, MSC, CMA CGM). Preencha container_number_text e carrier_text.\\n   - interna_vazia: interior do container vazio, sem o flex tanque ainda instalado.\\n   - interna_flex: interior do container com o flex tanque ja instalado.\\n   - trava: anteparo/trava (madeira, papelao ou similar) instalado contra a porta para segurar a carga.\\n   - geral: outra foto geral relacionada a operacao.\\n   - desconhecida: nao relacionado a nenhuma categoria acima.\\n\\n   Leia com atencao qualquer texto visivel (mesmo pequeno) e preencha os campos que se aplicarem. Se nao conseguir ler algo com confianca, deixe o campo vazio em vez de adivinhar.\", tools: [{\"name\":\"report_incoming_image\",\"description\":\"Reporta o que foi identificado na imagem enviada no grupo (programacao ou foto de operacao).\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"document_type\":{\"type\":\"string\",\"enum\":[\"programacao\",\"foto_operacao\",\"desconhecido\"]},\"programacao_rows\":{\"type\":\"array\",\"description\":\"Preencher somente se document_type=programacao. Uma entrada por linha/booking visivel na tabela.\",\"items\":{\"type\":\"object\",\"properties\":{\"recebimento_programacao\":{\"type\":\"string\",\"description\":\"DD/MM/AAAA\"},\"booking\":{\"type\":\"string\"},\"qtd_cntr\":{\"type\":\"integer\"},\"data_carregamento\":{\"type\":\"string\",\"description\":\"DD/MM/AAAA\"},\"data_montagem_flex\":{\"type\":\"string\",\"description\":\"DD/MM/AAAA\"},\"data_coleta_cntr_vazio\":{\"type\":\"string\",\"description\":\"DD/MM/AAAA\"},\"planta_carregamento\":{\"type\":\"string\"},\"armador\":{\"type\":\"string\"},\"obs\":{\"type\":\"string\"}},\"required\":[\"booking\"]}},\"photo_type\":{\"type\":\"string\",\"enum\":[\"etiqueta\",\"porta\",\"interna_vazia\",\"interna_flex\",\"trava\",\"geral\",\"desconhecida\"],\"description\":\"Preencher somente se document_type=foto_operacao.\"},\"container_number_text\":{\"type\":\"string\"},\"carrier_text\":{\"type\":\"string\"},\"flex_tank_code_text\":{\"type\":\"string\"},\"flex_lot_no_text\":{\"type\":\"string\"},\"reasoning\":{\"type\":\"string\"}},\"required\":[\"document_type\"]}}], tool_choice: {type:\"tool\", name:\"report_incoming_image\"}, messages: [{role:\"user\", content: [{type:\"image\", source:{type:\"base64\", media_type: $json.mimetype || \"image/jpeg\", data: $json.base64}}, {type:\"text\", text:\"Analise esta imagem conforme as instrucoes.\"}]}] }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "id": "db687ebc-d47e-4a41-94c1-7dfc9eb91505",
+      "name": "Extrair analise da imagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const resp = $input.first().json;\nconst toolUse = (resp.content || []).find(function(b){ return b.type === 'tool_use' && b.name === 'report_incoming_image'; });\nconst input = toolUse ? toolUse.input : {};\nconst norm = $('Normalizar mensagem').first().json;\nconst media = $('Buscar midia base64').first().json;\nreturn [{ json: {\n  groupId: norm.groupId, senderId: norm.senderId, senderName: norm.senderName, messageId: norm.messageId,\n  mimeType: media.mimetype || norm.mimeType || 'image/jpeg', base64: media.base64 || '',\n  documentType: input.document_type || 'desconhecido', programacaoRows: Array.isArray(input.programacao_rows) ? input.programacao_rows : [],\n  photoType: input.photo_type || 'desconhecida', containerNumberText: input.container_number_text || '', carrierText: input.carrier_text || '',\n  flexTankCodeText: input.flex_tank_code_text || '', flexLotNoText: input.flex_lot_no_text || '',\n} }];"
+      }
+    },
+    {
+      "id": "45ae735a-531c-415e-8d04-9b46adf2c961",
+      "name": "Preparar linhas da programacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        -300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  if (j.documentType !== 'programacao') continue;\n  for (const row of (j.programacaoRows || [])) {\n    if (!row.booking) continue;\n    const booking = String(row.booking).trim();\n    const qty = parseInt(row.qtd_cntr, 10) || 1;\n    const sql = 'INSERT INTO bookings (group_id, booking, received_at, qty_containers, loading_date, flex_assembly_date, empty_pickup_date, loading_plant, carrier, notes) VALUES (' +\n      pgQuote(j.groupId) + ',' + pgQuote(booking) + ',' + pgQuote(parseBrDate(row.recebimento_programacao)) + ',' + qty + ',' + pgQuote(parseBrDate(row.data_carregamento)) + ',' + pgQuote(parseBrDate(row.data_montagem_flex)) + ',' + pgQuote(parseBrDate(row.data_coleta_cntr_vazio)) + ',' + pgQuote(row.planta_carregamento) + ',' + pgQuote(row.armador) + ',' + pgQuote(row.obs) +\n      \") ON CONFLICT (booking) DO UPDATE SET group_id=EXCLUDED.group_id, received_at=EXCLUDED.received_at, qty_containers=EXCLUDED.qty_containers, loading_date=EXCLUDED.loading_date, flex_assembly_date=EXCLUDED.flex_assembly_date, empty_pickup_date=EXCLUDED.empty_pickup_date, loading_plant=EXCLUDED.loading_plant, carrier=EXCLUDED.carrier, notes=EXCLUDED.notes, updated_at=now() RETURNING booking, (xmax = 0) AS inserted, \" + pgQuote(j.groupId) + \" AS group_id\";\n    out.push({ json: { sql } });\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "ee1981b5-3f30-47cb-a24c-26888f382320",
+      "name": "Upsert booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        -300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "db9946df-f042-42e0-8a04-825879601e58",
+      "name": "Montar resumo da programacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        -300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nif (!items.length) return [];\nconst total = items.length;\nconst inserted = items.filter(function(i){ return i.json.inserted === true || i.json.inserted === 't'; }).length;\nconst groupId = items[0].json.group_id;\nconst text = 'Programacao atualizada: ' + total + ' booking(s) (' + inserted + ' novo(s), ' + (total-inserted) + ' atualizado(s)).';\nreturn [{ json: { groupId, text } }];"
+      }
+    },
+    {
+      "id": "aba7f8e7-145f-4f39-9547-2eb1d00fa494",
+      "name": "Responder confirmacao da programacao",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        -300
+      ],
+      "notes": "",
+      "parameters": {
+        "method": "POST",
+        "url": "https://SEU-EVOLUTION-API.exemplo.com/message/sendText/nome-da-instancia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.groupId, text: $json.text }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "Evolution API Key"
+        }
+      }
+    },
+    {
+      "id": "6b046e7d-9826-4d26-9ce4-71dccc47200c",
+      "name": "Preparar foto de operacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  if (j.documentType !== 'foto_operacao') continue;\n  const photoType = j.photoType || 'desconhecida';\n  const sqlEnsure = 'INSERT INTO photo_batches (group_id, sender_id, sender_name, status) SELECT ' + pgQuote(j.groupId) + ',' + pgQuote(j.senderId) + ',' + pgQuote(j.senderName) + \",'pending' WHERE NOT EXISTS (SELECT 1 FROM photo_batches WHERE group_id=\" + pgQuote(j.groupId) + ' AND sender_id=' + pgQuote(j.senderId) + \" AND status='pending')\";\n  const sqlSelect = 'SELECT id AS batch_id, group_id, group_name, sender_id, sender_name FROM photo_batches WHERE group_id=' + pgQuote(j.groupId) + ' AND sender_id=' + pgQuote(j.senderId) + \" AND status='pending' ORDER BY created_at DESC LIMIT 1\";\n  out.push({ json: { ...j, photoType, sqlEnsure, sqlSelect } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "b48b3941-f67f-40eb-ac31-b02c4d1c2597",
+      "name": "Garantir lote aberto",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sqlEnsure }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "57631e5c-39a5-4591-8c09-e5def100e714",
+      "name": "Obter lote aberto",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        840,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $('Preparar foto de operacao').first().json.sqlSelect }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "5f1d392c-c733-49e4-9a8f-d748558246e0",
+      "name": "Preparar insercao da foto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst batch = $input.first().json;\nconst analysis = $('Preparar foto de operacao').first().json;\nconst sql = 'INSERT INTO batch_photos (batch_id, message_id, mime_type, base64_data, photo_type, container_number_text, flex_tank_number_text, flex_lot_no_text, carrier_text) VALUES (' +\n  batch.batch_id + ',' + pgQuote(analysis.messageId) + ',' + pgQuote(analysis.mimeType) + ',' + pgQuote(analysis.base64) + ',' + pgQuote(analysis.photoType) + ',' + pgQuote(analysis.containerNumberText) + ',' + pgQuote(analysis.flexTankCodeText) + ',' + pgQuote(analysis.flexLotNoText) + ',' + pgQuote(analysis.carrierText) +\n  ') RETURNING batch_id';\nconst sqlTouch = 'UPDATE photo_batches SET updated_at = now() WHERE id = ' + batch.batch_id;\nconst sqlCount = 'SELECT ' + batch.batch_id + ' AS batch_id, ' + pgQuote(batch.group_id) + ' AS group_id, ' + pgQuote(batch.group_name) + ' AS group_name, ' + pgQuote(batch.sender_id) + ' AS sender_id, ' + pgQuote(batch.sender_name) + ' AS sender_name, (SELECT count(*)::int FROM batch_photos WHERE batch_id = ' + batch.batch_id + ') AS photo_count';\nreturn [{ json: { sql, sqlTouch, sqlCount } }];"
+      }
+    },
+    {
+      "id": "95bf3b8e-1bb8-41d5-a8eb-07757993e7e8",
+      "name": "Salvar foto no lote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1400,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "ab1f4255-ebaa-47a8-821d-42cdc8387dce",
+      "name": "Atualizar timestamp do lote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1680,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $('Preparar insercao da foto').first().json.sqlTouch }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "c331035f-b5b1-4417-a396-8c384e79b908",
+      "name": "Contar fotos do lote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1960,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $('Preparar insercao da foto').first().json.sqlCount }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "6156ea40-16b0-46b8-ae61-bae78f86cb6a",
+      "name": "Gate - Lote completo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const EXPECTED = 5;\nconst items = $input.all();\nconst out = [];\nfor (const item of items) { if ((item.json.photo_count || 0) >= EXPECTED) out.push(item); }\nreturn out;"
+      }
+    },
+    {
+      "id": "0ae91364-f3ff-41a4-8707-2a56ddb9dc59",
+      "name": "Gate - Eh texto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst out = [];\nfor (const item of items) { if (item.json.kind === 'text') out.push(item); }\nreturn out;"
+      }
+    },
+    {
+      "id": "02b37a30-3e9f-4f7a-96ee-761e10dc0a27",
+      "name": "Preparar busca de lote aguardando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst j = $input.first().json;\nconst sql = 'SELECT id AS batch_id, group_id, group_name, sender_id, sender_name, candidate_bookings FROM photo_batches WHERE group_id=' + pgQuote(j.groupId) + \" AND status='awaiting_booking_choice' ORDER BY updated_at DESC LIMIT 1\";\nreturn [{ json: { sql, textBody: j.textBody } }];"
+      }
+    },
+    {
+      "id": "52807469-7e5a-4b47-bf71-2a09f3dfabdd",
+      "name": "Buscar lote aguardando escolha",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        840,
+        600
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "9dd3a633-7d04-467c-b4fa-8dd1396e3381",
+      "name": "Tentar casar texto com candidato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst textBody = ($('Preparar busca de lote aguardando').first().json.textBody || '').toUpperCase();\nconst out = [];\nfor (const item of items) {\n  const candidates = item.json.candidate_bookings || [];\n  const match = candidates.find(function(b){ return textBody.includes(String(b).toUpperCase()); });\n  if (match) out.push({ json: { batch_id: item.json.batch_id, matchedBooking: match } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "5b43deff-cf21-4bdd-8c48-dfe61ee10eea",
+      "name": "Preparar busca do booking escolhido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst j = $input.first().json;\nconst sql = 'SELECT id AS booking_id FROM bookings WHERE booking = ' + pgQuote(j.matchedBooking) + ' LIMIT 1';\nreturn [{ json: { sql } }];"
+      }
+    },
+    {
+      "id": "cc3e6750-6fdf-49e5-ac2e-4b7faf09cbbe",
+      "name": "Buscar id do booking escolhido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1680,
+        600
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "8d8f3ec6-5d42-4f4b-9d77-a0f0fdc0d439",
+      "name": "Preparar gravacao do booking resolvido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst bookingRow = $input.first().json;\nconst ctx = $('Tentar casar texto com candidato').first().json;\nconst sql = 'UPDATE photo_batches SET matched_booking_id=' + bookingRow.booking_id + \", match_status='resolved', status='processing', updated_at=now() WHERE id=\" + ctx.batch_id + ' RETURNING id AS batch_id';\nreturn [{ json: { sql } }];"
+      }
+    },
+    {
+      "id": "699210ec-843c-42a9-906c-343f0d6937d3",
+      "name": "Gravar booking resolvido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2240,
+        600
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "0f5c899a-f5dd-4161-bc5e-348d3c4490f4",
+      "name": "Agendamento - Verificar Lotes Parados",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        280,
+        900
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3591d85d-b5a8-470c-a35f-b93904b36be2",
+      "name": "Buscar lotes parados",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        900
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pb.id AS batch_id FROM photo_batches pb WHERE pb.status='pending' AND pb.updated_at < now() - interval '60 seconds' AND EXISTS (SELECT 1 FROM batch_photos WHERE batch_id = pb.id)",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "3447086f-268f-41e9-9cd0-eaaad643885b",
+      "name": "Travar lote (processing)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        280,
+        1300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"UPDATE photo_batches SET status='processing', updated_at=now() WHERE id=\" + $json.batch_id + \" AND status='pending' RETURNING id AS batch_id, group_id, group_name, sender_id, sender_name\" }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "721666f3-e8b3-42a0-817f-9fd92b99dfc8",
+      "name": "Montar SQL - agregados das fotos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        1300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const sql = 'SELECT ' + j.batch_id + ' AS batch_id, ' + pgQuote(j.group_id) + ' AS group_id, ' + pgQuote(j.group_name) + ' AS group_name, ' + pgQuote(j.sender_id) + ' AS sender_id, ' + pgQuote(j.sender_name) + ' AS sender_name, ' +\n    \"string_agg(DISTINCT NULLIF(carrier_text,''), ' ') AS carrier_texts, string_agg(DISTINCT NULLIF(container_number_text,''), ' ') AS container_texts, string_agg(DISTINCT NULLIF(flex_tank_number_text,''), ' ') AS flex_texts, string_agg(DISTINCT NULLIF(flex_lot_no_text,''), ' ') AS lot_texts FROM batch_photos WHERE batch_id=\" + j.batch_id + ' GROUP BY 1,2,3,4,5';\n  out.push({ json: { sql } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "1f06002a-0363-46e5-a443-bd5cf3d3f750",
+      "name": "Buscar agregados das fotos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        840,
+        1300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "088f62cd-9b5a-4a4e-a7f0-8c8e1af07ca1",
+      "name": "Escolher numeros e montar SQL de salvar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const containerNumber = pickContainer(j.container_texts || '');\n  const flexTankNumber = (j.flex_texts || '').trim().split(/\\s+/)[0] || '';\n  const flexLotNo = (j.lot_texts || '').trim();\n  const carrierText = (j.carrier_texts || '').trim();\n  const sqlSave = 'UPDATE photo_batches SET container_number=' + pgQuote(containerNumber) + ', flex_tank_number=' + pgQuote(flexTankNumber) + ', flex_lot_no=' + pgQuote(flexLotNo) + ', carrier_text=' + pgQuote(carrierText) + ', updated_at=now() WHERE id=' + j.batch_id +\n    ' RETURNING id AS batch_id, group_id, group_name, sender_id, sender_name, container_number, flex_tank_number, flex_lot_no, carrier_text';\n  out.push({ json: { sqlSave } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "925d7fe6-be22-4b7c-9fd3-9fb4025f6232",
+      "name": "Salvar numeros no lote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1400,
+        1300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sqlSave }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "77cbcf7e-f01b-4f0d-bdce-77d6522439aa",
+      "name": "Montar SQL - candidatos de booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        1300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const carrierFilter = (j.carrier_text || '').trim().split(/\\s+/)[0] || '';\n  const filterClause = carrierFilter ? (\"AND carrier ILIKE '%\" + pgEscape(carrierFilter) + \"%'\") : '';\n  const sql = 'WITH candidates AS (SELECT id AS booking_id, booking, loading_plant, notes, qty_containers, qty_assembled FROM bookings WHERE group_id=' + pgQuote(j.group_id) + \" AND status='open' \" + filterClause + ' ORDER BY flex_assembly_date NULLS LAST, id ASC) ' +\n    'SELECT ' + j.batch_id + ' AS batch_id, ' + pgQuote(j.group_id) + ' AS group_id, ' + pgQuote(j.group_name) + ' AS group_name, ' + pgQuote(j.sender_id) + ' AS sender_id, ' + pgQuote(j.sender_name) + ' AS sender_name, ' + pgQuote(j.container_number) + ' AS container_number, ' + pgQuote(j.flex_tank_number) + ' AS flex_tank_number, ' + pgQuote(j.flex_lot_no) + ' AS flex_lot_no, ' + pgQuote(j.carrier_text) + ' AS carrier_text, ' +\n    '(SELECT count(*) FROM candidates)::int AS candidate_count, booking_id, booking, loading_plant, notes, qty_containers, qty_assembled FROM candidates ' +\n    'UNION ALL SELECT ' + j.batch_id + ',' + pgQuote(j.group_id) + ',' + pgQuote(j.group_name) + ',' + pgQuote(j.sender_id) + ',' + pgQuote(j.sender_name) + ',' + pgQuote(j.container_number) + ',' + pgQuote(j.flex_tank_number) + ',' + pgQuote(j.flex_lot_no) + ',' + pgQuote(j.carrier_text) + ',0,NULL,NULL,NULL,NULL,NULL,NULL WHERE NOT EXISTS (SELECT 1 FROM candidates)';\n  out.push({ json: { sql } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "bbe56370-826a-400e-9606-6c3b97d51d93",
+      "name": "Buscar candidatos de booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1960,
+        1300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "d29c5d0d-f9ca-4e1b-a9ca-8a4acef77081",
+      "name": "Decidir booking automatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        1300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst byBatch = new Map();\nfor (const item of items) {\n  const j = item.json;\n  if (!byBatch.has(j.batch_id)) byBatch.set(j.batch_id, { ctx: j, rows: [] });\n  byBatch.get(j.batch_id).rows.push(j);\n}\nconst out = [];\nfor (const [batchId, { ctx, rows }] of byBatch) {\n  const count = Number(ctx.candidate_count) || 0;\n  let matchStatus = 'unmatched', matchedBookingId = null, candidateBookings = [];\n  if (count === 1) { matchStatus = 'auto'; matchedBookingId = rows[0].booking_id; }\n  else if (count > 1) { matchStatus = 'ambiguous'; candidateBookings = rows.map(function(r){ return { id: r.booking_id, booking: r.booking, plant: r.loading_plant, notes: r.notes, qty: r.qty_containers, assembled: r.qty_assembled }; }); }\n  out.push({ json: { batch_id: batchId, group_id: ctx.group_id, group_name: ctx.group_name, sender_id: ctx.sender_id, sender_name: ctx.sender_name, container_number: ctx.container_number, flex_tank_number: ctx.flex_tank_number, flex_lot_no: ctx.flex_lot_no, carrier_text: ctx.carrier_text, matchStatus, matchedBookingId, candidateBookings } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "e49a75a6-4fdc-40ee-9791-5fef45d478cc",
+      "name": "Gate - Resolvido automaticamente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        1300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nreturn items.filter(function(i){ return i.json.matchStatus !== 'ambiguous'; });"
+      }
+    },
+    {
+      "id": "607e95c4-1efd-4ad6-b3f9-f46741b7ebba",
+      "name": "Gate - Ambiguo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        1500
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nreturn items.filter(function(i){ return i.json.matchStatus === 'ambiguous'; });"
+      }
+    },
+    {
+      "id": "3317e3cc-cfbb-4e27-b765-41835f9d4a2f",
+      "name": "Montar SQL - gravar booking no lote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        1300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const sql = 'UPDATE photo_batches SET matched_booking_id=' + (j.matchedBookingId || 'NULL') + ', match_status=' + pgQuote(j.matchStatus) + ', updated_at=now() WHERE id=' + j.batch_id + ' RETURNING id AS batch_id';\n  out.push({ json: { sql } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "f14b1e0b-dee3-45c8-a179-4bededb91a53",
+      "name": "Gravar booking no lote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3360,
+        1300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "3f1e03bf-c794-43cf-b52e-db1c41165415",
+      "name": "Montar SQL - aguardar escolha no grupo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3640,
+        1500
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const codes = j.candidateBookings.map(function(c){ return c.booking; });\n  const lines = ['Encontrei mais de um booking em aberto compativel. Responda com o numero do booking correspondente a esta montagem:', ''];\n  for (const c of j.candidateBookings) lines.push('- ' + c.booking + ' | Planta: ' + (c.plant || '-') + ' | Pendentes: ' + ((Number(c.qty)||0) - (Number(c.assembled)||0)) + '/' + c.qty + (c.notes ? (' | Obs: ' + c.notes) : ''));\n  const messageText = lines.join('\\n');\n  const sql = \"UPDATE photo_batches SET match_status='ambiguous', status='awaiting_booking_choice', candidate_bookings=\" + pgQuoteArray(codes) + ', updated_at=now() WHERE id=' + j.batch_id + ' RETURNING id AS batch_id, ' + pgQuote(j.group_id) + ' AS group_id, ' + pgQuote(messageText) + ' AS message_text';\n  out.push({ json: { sql } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "012480ea-6ba9-44f9-804b-2687785a856f",
+      "name": "Gravar status aguardando",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3920,
+        1500
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "47e1a203-8bf8-46a4-a272-624ec0a7f720",
+      "name": "Responder pedido de escolha no grupo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4200,
+        1500
+      ],
+      "notes": "",
+      "parameters": {
+        "method": "POST",
+        "url": "https://SEU-EVOLUTION-API.exemplo.com/message/sendText/nome-da-instancia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.group_id, text: $json.message_text }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "Evolution API Key"
+        }
+      }
+    },
+    {
+      "id": "cb97d754-009b-4911-bb2c-932deddb94a4",
+      "name": "Buscar dados do lote e booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        280,
+        1900
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"SELECT pb.id AS batch_id, pb.group_id, pb.group_name, pb.sender_id, pb.sender_name, pb.container_number, pb.flex_tank_number, pb.flex_lot_no, pb.matched_booking_id, b.booking, b.loading_plant, b.carrier, b.notes, b.qty_containers, b.qty_assembled FROM photo_batches pb LEFT JOIN bookings b ON b.id = pb.matched_booking_id WHERE pb.id = \" + $json.batch_id }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "00b2484a-0c3a-4cdf-b9ce-37685d9bbd10",
+      "name": "Buscar fotos do lote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1900
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"SELECT \" + $json.batch_id + \" AS batch_id, mime_type, base64_data, photo_type FROM batch_photos WHERE batch_id=\" + $json.batch_id + \" ORDER BY created_at ASC\" }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "e3863dbc-a7b2-46dc-80d8-d293dc8aa5e5",
+      "name": "Consolidar e preparar anexos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        1900
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const photoRows = $input.all();\nconst batchRows = $('Buscar dados do lote e booking').all();\nconst batchById = new Map();\nfor (const r of batchRows) batchById.set(r.json.batch_id, r.json);\nconst photosByBatch = new Map();\nfor (const r of photoRows) { const bid = r.json.batch_id; if (!photosByBatch.has(bid)) photosByBatch.set(bid, []); photosByBatch.get(bid).push(r.json); }\nfunction extFor(mime) { if (!mime) return 'jpg'; if (mime.includes('png')) return 'png'; if (mime.includes('webp')) return 'webp'; if (mime.includes('gif')) return 'gif'; return 'jpg'; }\nconst out = [];\nfor (const [batchId, photos] of photosByBatch) {\n  const batch = batchById.get(batchId) || {};\n  const binary = {}; let idx = 1;\n  for (const p of photos) { binary['attachment' + idx] = { data: p.base64_data, mimeType: p.mime_type, fileName: idx + '-' + (p.photo_type || 'foto') + '.' + extFor(p.mime_type) }; idx++; }\n  out.push({ json: {\n    batchId, groupId: batch.group_id, groupName: batch.group_name, senderName: batch.sender_name,\n    containerNumber: batch.container_number, flexTankNumber: batch.flex_tank_number, flexLotNo: batch.flex_lot_no,\n    matchedBookingId: batch.matched_booking_id, booking: batch.booking, loadingPlant: batch.loading_plant, carrier: batch.carrier, notes: batch.notes,\n    qtyContainers: batch.qty_containers, qtyAssembled: batch.qty_assembled,\n  }, binary });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "47e92d1a-d771-4541-a24b-055e17345bc8",
+      "name": "Enviar e-mail com fotos",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        1900
+      ],
+      "parameters": {
+        "fromEmail": "Agente CTA <agente@example.com>",
+        "toEmail": "destinatario@example.com",
+        "ccEmail": "",
+        "subject": "={{ 'Operacao Flex Tanque - Container ' + ($json.containerNumber || 'N/D') + ' / Flex ' + ($json.flexTankNumber || 'N/D') }}",
+        "emailFormat": "html",
+        "html": "={{ '<p>Container: <b>' + ($json.containerNumber || 'NAO IDENTIFICADO') + '</b><br/>' + 'Flex tanque: <b>' + ($json.flexTankNumber || 'NAO IDENTIFICADO') + '</b>' + ($json.flexLotNo ? ' (Lot No: ' + $json.flexLotNo + ')' : '') + '<br/>' + (($json.booking) ? ('Booking: <b>' + $json.booking + '</b> - Planta: ' + ($json.loadingPlant || '-') + ' - Armador: ' + ($json.carrier || '-') + '<br/>Progresso: ' + ((Number($json.qtyAssembled)||0)+1) + ' de ' + ($json.qtyContainers || '?') + '<br/>') : 'Booking: NAO LOCALIZADO<br/>') + 'Grupo: ' + ($json.groupName || $json.groupId) + '<br/>Enviado por: ' + ($json.senderName || '-') + '</p>' }}",
+        "attachments": "={{ Object.keys($binary || {}).join(',') }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "20",
+          "name": "SMTP CTA"
+        }
+      }
+    },
+    {
+      "id": "25e06293-9b95-4752-ab99-2f2a24e49253",
+      "name": "Montar mensagem do grupo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1900
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const RESPONSIBLES = [{\"name\":\"Responsavel 1\",\"phone\":\"5511999999999\"},{\"name\":\"Responsavel 2\",\"phone\":\"5511888888888\"}];\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const lines = [];\n  lines.push('\\uD83D\\uDCE6 *Operacao registrada*');\n  lines.push('Container: *' + (j.containerNumber || 'NAO IDENTIFICADO') + '*');\n  lines.push('Flex tanque: *' + (j.flexTankNumber || 'NAO IDENTIFICADO') + '*' + (j.flexLotNo ? (' (Lot No: ' + j.flexLotNo + ')') : ''));\n  if (j.booking) {\n    lines.push('Booking: *' + j.booking + '* - Planta: ' + (j.loadingPlant || '-') + ' - Armador: ' + (j.carrier || '-'));\n    const assembledNow = (Number(j.qtyAssembled)||0) + 1;\n    lines.push('Progresso: ' + assembledNow + ' de ' + (j.qtyContainers || '?') + ' montados.');\n    if (j.notes) lines.push('Obs: ' + j.notes);\n  } else {\n    lines.push('Booking: NAO LOCALIZADO - favor confirmar manualmente.');\n  }\n  lines.push('');\n  lines.push('Fotos enviadas por e-mail para conferencia.');\n  if (RESPONSIBLES.length) { lines.push(''); lines.push(RESPONSIBLES.map(function(r){ return '@' + r.phone; }).join(' ')); }\n  out.push({ json: { groupId: j.groupId, text: lines.join('\\n'), mentioned: RESPONSIBLES.map(function(r){ return r.phone; }), matchedBookingId: j.matchedBookingId, batchId: j.batchId, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "fdb51c64-b47f-4fe6-8416-f6c023b4b45e",
+      "name": "Responder no grupo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        1900
+      ],
+      "notes": "",
+      "parameters": {
+        "method": "POST",
+        "url": "https://SEU-EVOLUTION-API.exemplo.com/message/sendText/nome-da-instancia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.groupId, text: $json.text, mentioned: $json.mentioned }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "Evolution API Key"
+        }
+      }
+    },
+    {
+      "id": "196ab18d-fd5d-4e11-afa1-765ebb5c7017",
+      "name": "Montar SQL - progresso e conclusao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        1900
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function pgEscape(v) { return String(v).replace(/'/g, \"''\"); }\nfunction pgQuote(v) { if (v === null || v === undefined || v === '') return 'NULL'; return \"'\" + pgEscape(v) + \"'\"; }\nfunction pgQuoteArray(arr) { if (!arr || !arr.length) return 'NULL'; return 'ARRAY[' + arr.map(function(v){ return \"'\" + pgEscape(v) + \"'\"; }).join(',') + ']::text[]'; }\nfunction parseBrDate(str) { if (!str) return null; var m = String(str).trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2,4})$/); if (!m) return null; var d=m[1],mo=m[2],y=m[3]; if (y.length===2) y='20'+y; return y.padStart(4,'0')+'-'+mo.padStart(2,'0')+'-'+d.padStart(2,'0'); }\nfunction pickContainer(text) {\n  if (!text) return '';\n  var matches = text.match(/[A-Za-z]{4}\\s*-?\\s*\\d{6}\\s*-?\\s*\\d/g) || [];\n  for (var i=0;i<matches.length;i++) {\n    var norm = matches[i].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n    if (isValidContainerChecksum(norm)) return norm;\n  }\n  if (matches.length) return matches[0].replace(/[^A-Za-z0-9]/g,'').toUpperCase();\n  return text.trim().split(/\\s+/)[0] || '';\n}\nfunction isValidContainerChecksum(code) {\n  if (!/^[A-Z]{4}\\d{7}$/.test(code)) return false;\n  var values = {}; var v = 10;\n  for (var i=0;i<26;i++) { if (v%11===0) v++; values[String.fromCharCode(65+i)] = v; v++; }\n  var sum = 0;\n  for (var i=0;i<10;i++) { var c = code[i]; var val = /[0-9]/.test(c) ? Number(c) : values[c]; sum += val * Math.pow(2,i); }\n  var check = sum % 11; if (check === 10) check = 0;\n  return check === Number(code[10]);\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const sqlBooking = j.matchedBookingId ?\n    ('UPDATE bookings SET qty_assembled = qty_assembled + 1, status = CASE WHEN qty_assembled + 1 >= qty_containers THEN \\'completed\\' ELSE \\'open\\' END, updated_at = now() WHERE id = ' + j.matchedBookingId) :\n    'SELECT 1';\n  const sqlBatch = 'UPDATE photo_batches SET status=' + pgQuote('done') + ', container_number=' + pgQuote(j.containerNumber) + ', flex_tank_number=' + pgQuote(j.flexTankNumber) + ', updated_at=now() WHERE id=' + j.batchId;\n  out.push({ json: { sqlBooking, sqlBatch } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "b96cc7c0-7a08-49c2-bbe1-5299f9b049cc",
+      "name": "Atualizar progresso do booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2240,
+        2050
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sqlBooking }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    },
+    {
+      "id": "0c252900-0848-4425-8226-3a0e161d0ced",
+      "name": "Marcar lote como concluido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2520,
+        2200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sqlBatch }}",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "10",
+          "name": "Postgres CTA"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Evolution": {
+      "main": [
+        [
+          {
+            "node": "Normalizar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar mensagem": {
+      "main": [
+        [
+          {
+            "node": "Gate - Eh imagem",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gate - Eh texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate - Eh imagem": {
+      "main": [
+        [
+          {
+            "node": "Buscar midia base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar midia base64": {
+      "main": [
+        [
+          {
+            "node": "Vision - Classificar imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vision - Classificar imagem": {
+      "main": [
+        [
+          {
+            "node": "Extrair analise da imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair analise da imagem": {
+      "main": [
+        [
+          {
+            "node": "Preparar linhas da programacao",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar foto de operacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar linhas da programacao": {
+      "main": [
+        [
+          {
+            "node": "Upsert booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert booking": {
+      "main": [
+        [
+          {
+            "node": "Montar resumo da programacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar resumo da programacao": {
+      "main": [
+        [
+          {
+            "node": "Responder confirmacao da programacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar foto de operacao": {
+      "main": [
+        [
+          {
+            "node": "Garantir lote aberto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir lote aberto": {
+      "main": [
+        [
+          {
+            "node": "Obter lote aberto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obter lote aberto": {
+      "main": [
+        [
+          {
+            "node": "Preparar insercao da foto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar insercao da foto": {
+      "main": [
+        [
+          {
+            "node": "Salvar foto no lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar foto no lote": {
+      "main": [
+        [
+          {
+            "node": "Atualizar timestamp do lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar timestamp do lote": {
+      "main": [
+        [
+          {
+            "node": "Contar fotos do lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contar fotos do lote": {
+      "main": [
+        [
+          {
+            "node": "Gate - Lote completo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate - Eh texto": {
+      "main": [
+        [
+          {
+            "node": "Preparar busca de lote aguardando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar busca de lote aguardando": {
+      "main": [
+        [
+          {
+            "node": "Buscar lote aguardando escolha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar lote aguardando escolha": {
+      "main": [
+        [
+          {
+            "node": "Tentar casar texto com candidato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tentar casar texto com candidato": {
+      "main": [
+        [
+          {
+            "node": "Preparar busca do booking escolhido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar busca do booking escolhido": {
+      "main": [
+        [
+          {
+            "node": "Buscar id do booking escolhido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar id do booking escolhido": {
+      "main": [
+        [
+          {
+            "node": "Preparar gravacao do booking resolvido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar gravacao do booking resolvido": {
+      "main": [
+        [
+          {
+            "node": "Gravar booking resolvido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - Verificar Lotes Parados": {
+      "main": [
+        [
+          {
+            "node": "Buscar lotes parados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate - Lote completo": {
+      "main": [
+        [
+          {
+            "node": "Travar lote (processing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar lotes parados": {
+      "main": [
+        [
+          {
+            "node": "Travar lote (processing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Travar lote (processing)": {
+      "main": [
+        [
+          {
+            "node": "Montar SQL - agregados das fotos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar SQL - agregados das fotos": {
+      "main": [
+        [
+          {
+            "node": "Buscar agregados das fotos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar agregados das fotos": {
+      "main": [
+        [
+          {
+            "node": "Escolher numeros e montar SQL de salvar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher numeros e montar SQL de salvar": {
+      "main": [
+        [
+          {
+            "node": "Salvar numeros no lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar numeros no lote": {
+      "main": [
+        [
+          {
+            "node": "Montar SQL - candidatos de booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar SQL - candidatos de booking": {
+      "main": [
+        [
+          {
+            "node": "Buscar candidatos de booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar candidatos de booking": {
+      "main": [
+        [
+          {
+            "node": "Decidir booking automatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decidir booking automatico": {
+      "main": [
+        [
+          {
+            "node": "Gate - Resolvido automaticamente",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gate - Ambiguo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate - Resolvido automaticamente": {
+      "main": [
+        [
+          {
+            "node": "Montar SQL - gravar booking no lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar SQL - gravar booking no lote": {
+      "main": [
+        [
+          {
+            "node": "Gravar booking no lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate - Ambiguo": {
+      "main": [
+        [
+          {
+            "node": "Montar SQL - aguardar escolha no grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar SQL - aguardar escolha no grupo": {
+      "main": [
+        [
+          {
+            "node": "Gravar status aguardando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar status aguardando": {
+      "main": [
+        [
+          {
+            "node": "Responder pedido de escolha no grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar booking no lote": {
+      "main": [
+        [
+          {
+            "node": "Buscar dados do lote e booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar booking resolvido": {
+      "main": [
+        [
+          {
+            "node": "Buscar dados do lote e booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar dados do lote e booking": {
+      "main": [
+        [
+          {
+            "node": "Buscar fotos do lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar fotos do lote": {
+      "main": [
+        [
+          {
+            "node": "Consolidar e preparar anexos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar e preparar anexos": {
+      "main": [
+        [
+          {
+            "node": "Enviar e-mail com fotos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Montar mensagem do grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar mensagem do grupo": {
+      "main": [
+        [
+          {
+            "node": "Responder no grupo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Montar SQL - progresso e conclusao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar SQL - progresso e conclusao": {
+      "main": [
+        [
+          {
+            "node": "Atualizar progresso do booking",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Marcar lote como concluido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

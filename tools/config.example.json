@@ -1,0 +1,35 @@
+{
+  "_comment": "Copie para tools/config.json e edite os valores. Depois rode 'node tools/generate-workflows.mjs' para gerar workflows/*.json com esses valores embutidos. Segredos (API keys, senha SMTP) NAO vao aqui - eles sao configurados como credenciais dentro do n8n apos importar os workflows.",
+
+  "evolution": {
+    "_comment": "URL base e nome da instancia da sua Evolution API (ex: https://evolution.seudominio.com). O apikey e configurado como credencial 'Evolution API Key' dentro do n8n, nao aqui.",
+    "baseUrl": "https://SEU-EVOLUTION-API.exemplo.com",
+    "instance": "nome-da-instancia"
+  },
+
+  "whatsapp": {
+    "_comment": "IDs dos grupos monitorados (formato 1203630...@g.us). Descubra enviando uma mensagem no grupo e olhando o payload que chega no webhook do n8n (veja README).",
+    "allowedGroupIds": ["EXEMPLO-ID-DO-GRUPO@g.us"]
+  },
+
+  "batch": {
+    "expectedPhotos": 5,
+    "windowSeconds": 60,
+    "sweepIntervalMinutes": 1
+  },
+
+  "anthropic": {
+    "model": "claude-sonnet-5"
+  },
+
+  "email": {
+    "from": "Agente CTA <agente@example.com>",
+    "to": ["destinatario@example.com"],
+    "cc": []
+  },
+
+  "responsibles": [
+    { "name": "Responsavel 1", "phone": "5511999999999" },
+    { "name": "Responsavel 2", "phone": "5511888888888" }
+  ]
+}
