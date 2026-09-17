@@ -337,14 +337,38 @@ const SEND_TEXT_URL = `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`;
 const GET_BASE64_URL = `${EVOLUTION_URL}/chat/getBase64FromMediaMessage/${EVOLUTION_INSTANCE}`;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
-const anthropicBodyExpr =
-  "={{ JSON.stringify({ model: " +
-  JSON.stringify(cfg.anthropic.model) +
-  ", max_tokens: 1200, system: " +
-  JSON.stringify(SYSTEM_PROMPT) +
-  ", tools: " +
-  JSON.stringify([TOOL_SCHEMA]) +
-  ', tool_choice: {type:"tool", name:"report_incoming_image"}, messages: [{role:"user", content: [{type:"image", source:{type:"base64", media_type: $json.mimetype || "image/jpeg", data: $json.base64}}, {type:"text", text:"Analise esta imagem conforme as instrucoes."}]}] }) }}';
+// A montagem do corpo da requisicao para a Anthropic fica num Code node (JS
+// de verdade), nao numa expressao "={{ }}" do HTTP Request node - o motor de
+// expressoes do n8n e um mini-parser restrito e nao lida bem com um
+// JSON.stringify(...) tao grande/aninhado (produz "invalid syntax" em tempo
+// de execucao mesmo quando a sintaxe JS pura e valida). Code node nao tem
+// essa limitacao.
+const anthropicBodyCodeLines = [
+  `const MODEL = ${JSON.stringify(cfg.anthropic.model)};`,
+  `const SYSTEM_PROMPT_TEXT = ${JSON.stringify(SYSTEM_PROMPT)};`,
+  `const TOOLS = ${JSON.stringify([TOOL_SCHEMA])};`,
+  "const items = $input.all();",
+  "const out = [];",
+  "for (const item of items) {",
+  "  const j = item.json;",
+  "  const body = {",
+  "    model: MODEL,",
+  "    max_tokens: 1200,",
+  "    system: SYSTEM_PROMPT_TEXT,",
+  "    tools: TOOLS,",
+  '    tool_choice: { type: "tool", name: "report_incoming_image" },',
+  "    messages: [{",
+  '      role: "user",',
+  "      content: [",
+  '        { type: "image", source: { type: "base64", media_type: j.mimetype || "image/jpeg", data: j.base64 } },',
+  '        { type: "text", text: "Analise esta imagem conforme as instrucoes." },',
+  "      ],",
+  "    }],",
+  "  };",
+  "  out.push({ json: { ...j, anthropicBody: JSON.stringify(body) } });",
+  "}",
+  "return out;",
+];
 
 // === Lane T1: webhook + normalizacao ========================================
 const LANE_T1 = 0;
@@ -406,13 +430,16 @@ const nBuscarBase64 = add(
 );
 link(nGateImagem, nBuscarBase64);
 
+const nMontarCorpoVision = add(code("Montar corpo da requisicao Vision", anthropicBodyCodeLines, pos("t1", LANE_T1)));
+link(nBuscarBase64, nMontarCorpoVision);
+
 const nVision = add(
   httpNode(
     "Vision - Classificar imagem",
     {
       method: "POST",
       url: ANTHROPIC_URL,
-      jsonBodyExpr: anthropicBodyExpr,
+      jsonBodyExpr: "={{ $json.anthropicBody }}",
       credName: "Anthropic API Key",
       credId: "2",
       extraHeaders: [{ name: "anthropic-version", value: "2023-06-01" }],
@@ -420,7 +447,7 @@ const nVision = add(
     pos("t1", LANE_T1),
   ),
 );
-link(nBuscarBase64, nVision);
+link(nMontarCorpoVision, nVision);
 
 const nExtrairAnalise = add(
   code(
