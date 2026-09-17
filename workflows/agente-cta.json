@@ -2,7 +2,7 @@
   "name": "Agente CTA - WhatsApp (Programacao + Flex Tanque)",
   "nodes": [
     {
-      "id": "f1967ce9-5b8e-4529-b8de-b9690acecf4b",
+      "id": "6c143e68-ce24-45ff-a8e8-08fba97f2e38",
       "name": "Webhook Evolution",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -10,7 +10,7 @@
         280,
         0
       ],
-      "webhookId": "14a3fc04-1925-44f1-aa69-da6b4393d7ed",
+      "webhookId": "b404ee05-d535-45e3-896a-1d1fae4888f5",
       "parameters": {
         "httpMethod": "POST",
         "path": "evolution-webhook",
@@ -20,7 +20,7 @@
       }
     },
     {
-      "id": "92989f03-3164-42c9-a258-494926ccf561",
+      "id": "872ab2d0-91cb-4407-81fa-528e8a9b30bd",
       "name": "Normalizar mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "5f25cdd4-9176-454f-a07a-11872100719b",
+      "id": "73ae1c3f-aabd-411b-a2d7-4cda779debe2",
       "name": "Gate - Eh imagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -50,7 +50,7 @@
       }
     },
     {
-      "id": "22e50314-d637-41c4-979d-2aea7a6b08fe",
+      "id": "08d2b8f4-4bdc-4452-9a9d-5950e9acc477",
       "name": "Buscar midia base64",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -86,7 +86,7 @@
       }
     },
     {
-      "id": "6816ee88-88bd-46e3-aa06-bf5049254d78",
+      "id": "484b1e76-07ee-470d-bc42-a5e8657f7b76",
       "name": "Montar corpo da requisicao Vision",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -101,7 +101,7 @@
       }
     },
     {
-      "id": "8b0d93f9-d3a8-4f63-bcbd-4b161f7b8a81",
+      "id": "9782e2e4-f60e-4206-a424-5f67cb66b56b",
       "name": "Vision - Classificar imagem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -141,7 +141,7 @@
       }
     },
     {
-      "id": "daec48a1-370c-4c21-a251-625c1a616799",
+      "id": "8a16edd1-b1fc-4d0d-bdf2-c74e12ed3b67",
       "name": "Extrair analise da imagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -156,7 +156,7 @@
       }
     },
     {
-      "id": "18b1e7ec-9367-417c-8eec-ba364aaa51f2",
+      "id": "617f37ec-5f7b-43dc-93d7-e784f3ccc79b",
       "name": "Preparar linhas da programacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -171,7 +171,7 @@
       }
     },
     {
-      "id": "2f1bcb39-2c6d-46b4-9e9c-2e057343ce58",
+      "id": "d74b107c-7202-415c-84f5-a238940e73d4",
       "name": "Upsert booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -192,7 +192,7 @@
       }
     },
     {
-      "id": "7857adaa-57fe-4e9e-8786-e505113d5a90",
+      "id": "d10de5f2-6097-4583-b561-786c35dd5ea1",
       "name": "Montar resumo da programacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -203,11 +203,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const items = $input.all();\nif (!items.length) return [];\nconst isNew = function(i){ return i.json.inserted === true || i.json.inserted === 't'; };\nconst newItems = items.filter(isNew);\nconst repeatedItems = items.filter(function(i){ return !isNew(i); });\nconst groupId = items[0].json.group_id;\nconst lines = [];\nlines.push('Programacao atualizada: ' + items.length + ' booking(s) (' + newItems.length + ' novo(s), ' + repeatedItems.length + ' repetido(s)/atualizado(s)).');\nlines.push('');\nif (newItems.length) {\n  lines.push('Novos:');\n  for (const item of newItems) {\n    const j = item.json;\n    lines.push('- ' + j.booking + ' | Planta: ' + (j.loading_plant || '-') + ' | Qtd a montar: ' + (j.qty_containers != null ? j.qty_containers : '?'));\n  }\n  lines.push('');\n}\nif (repeatedItems.length) {\n  lines.push('AVISO - ja existiam na base (dados foram atualizados):');\n  for (const item of repeatedItems) {\n    const j = item.json;\n    lines.push('- ' + j.booking + ' | Planta: ' + (j.loading_plant || '-') + ' | Qtd a montar: ' + (j.qty_containers != null ? j.qty_containers : '?'));\n  }\n}\nconst text = lines.join('\\n');\nreturn [{ json: { groupId, text } }];"
+        "jsCode": "const items = $input.all();\nif (!items.length) return [];\nconst isNew = function(i){ return i.json.inserted === true || i.json.inserted === 't'; };\nconst newItems = items.filter(isNew);\nconst repeatedItems = items.filter(function(i){ return !isNew(i); });\nconst groupId = items[0].json.group_id;\nfunction bookingBlock(j, i) {\n  return ['*' + (i + 1) + ')* \\uD83D\\uDCE6 *' + j.booking + '*', '     \\uD83C\\uDFED ' + (j.loading_plant || '-'), '     \\uD83D\\uDD22 Qtd a montar: ' + (j.qty_containers != null ? j.qty_containers : '?'), ''];\n}\nconst lines = ['\\uD83D\\uDCCB *Programacao atualizada*', items.length + ' booking(s) - ' + newItems.length + ' novo(s), ' + repeatedItems.length + ' repetido(s)/atualizado(s)', ''];\nif (newItems.length) {\n  lines.push('\\uD83C\\uDD95 *Novos:*');\n  newItems.forEach(function(item, i) { lines.push.apply(lines, bookingBlock(item.json, i)); });\n}\nif (repeatedItems.length) {\n  lines.push('\\u26A0\\uFE0F *Ja existiam na base (dados atualizados):*');\n  repeatedItems.forEach(function(item, i) { lines.push.apply(lines, bookingBlock(item.json, i)); });\n}\nif (lines[lines.length - 1] === '') lines.pop();\nconst text = lines.join('\\n');\nreturn [{ json: { groupId, text } }];"
       }
     },
     {
-      "id": "db5fa7af-ea31-4ec7-bf3a-e9c0fd652617",
+      "id": "79e1c738-6e7b-4a8b-96dd-514f59628c95",
       "name": "Responder confirmacao da programacao",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -243,7 +243,7 @@
       }
     },
     {
-      "id": "2b9d03d8-748a-434c-b759-463be0beeb6a",
+      "id": "981125be-ea2c-4a95-89bf-09b32617cc56",
       "name": "Preparar foto de operacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -258,7 +258,7 @@
       }
     },
     {
-      "id": "02a46b61-a9dd-4d3b-a523-990b2722166d",
+      "id": "8d44fa89-6e5b-446a-84f8-f66604253ff6",
       "name": "Garantir lote aberto",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -279,7 +279,7 @@
       }
     },
     {
-      "id": "fa3037a2-dbd1-48ba-84ef-3f21d488a07b",
+      "id": "41d98b23-6f9a-479d-a060-2d4c8e791bdb",
       "name": "Obter lote aberto",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -300,7 +300,7 @@
       }
     },
     {
-      "id": "3f68e060-30c2-4506-a266-ef67bd936eee",
+      "id": "e8910470-4206-4e39-b13e-a7f57089aff8",
       "name": "Preparar insercao da foto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -315,7 +315,7 @@
       }
     },
     {
-      "id": "5e1ef6de-05f6-4915-8bb2-97e35a4b0f54",
+      "id": "c0f1b135-4470-4165-983c-7224bfafd463",
       "name": "Salvar foto no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -336,7 +336,7 @@
       }
     },
     {
-      "id": "8ae59821-c9c7-40c7-9be6-6803b50bbadc",
+      "id": "b47bf445-9863-42b9-9af5-059d66189b44",
       "name": "Atualizar timestamp do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -357,7 +357,7 @@
       }
     },
     {
-      "id": "f4047498-d030-4d0b-80a4-c68a5d9335b7",
+      "id": "865fd247-69ce-4460-9efc-21710168930c",
       "name": "Contar fotos do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -378,7 +378,7 @@
       }
     },
     {
-      "id": "f25525d2-dda0-4647-b31f-ae2251800eb5",
+      "id": "e89467c2-2665-4b58-b4ed-7073b060574e",
       "name": "Gate - Lote completo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -393,7 +393,7 @@
       }
     },
     {
-      "id": "e8c84a8a-f2ca-4333-bcb2-45b4599fe8ce",
+      "id": "a7ddaafb-616c-432a-9294-13c09ae118b2",
       "name": "Gate - Eh texto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -408,7 +408,7 @@
       }
     },
     {
-      "id": "93e1e44f-def6-4af9-b37b-af9f4f1d4bcb",
+      "id": "0fcfa1f0-41b5-4743-9b3c-ee9a4028689e",
       "name": "Preparar busca de lote aguardando",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -423,7 +423,7 @@
       }
     },
     {
-      "id": "8260e25b-3ab2-40fd-8d78-fa35421956fa",
+      "id": "14eeaabb-fb34-4843-aaf2-31e1fd202de5",
       "name": "Buscar lote aguardando escolha",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -444,7 +444,7 @@
       }
     },
     {
-      "id": "fe56b145-8b6b-4c9c-8164-a1aec822e311",
+      "id": "e3ca0f14-d9f3-41b7-8342-72cf44137b67",
       "name": "Tentar casar texto com candidato",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -459,7 +459,7 @@
       }
     },
     {
-      "id": "c0ca8962-b35a-4a7c-9d8b-5342e3f5fa1a",
+      "id": "edf51915-3adb-49ef-87c6-4da294273fea",
       "name": "Preparar busca do booking escolhido",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -474,7 +474,7 @@
       }
     },
     {
-      "id": "7b94bdd0-298f-4b25-8661-c3ef1ea30039",
+      "id": "cc66b1c7-3029-4e87-9938-644dd7d99114",
       "name": "Buscar id do booking escolhido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -495,7 +495,7 @@
       }
     },
     {
-      "id": "5d1ec5d2-7e51-4419-aa96-b136bff2ffde",
+      "id": "f8701162-290f-4295-aaa7-3e157150aa51",
       "name": "Preparar gravacao do booking resolvido",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -510,7 +510,7 @@
       }
     },
     {
-      "id": "1ab715b7-6b34-486f-a271-838e861c0de5",
+      "id": "59c0fc6a-6f35-4c5c-92be-fa9258410307",
       "name": "Gravar booking resolvido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -531,7 +531,7 @@
       }
     },
     {
-      "id": "be190219-9d17-43bf-8272-fa8b5fc28439",
+      "id": "61bdd431-688e-4022-80dc-20669c8a2c57",
       "name": "Agendamento - Verificar Lotes Parados",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -551,7 +551,7 @@
       }
     },
     {
-      "id": "657acee3-ab10-45dd-8981-55a13e893670",
+      "id": "17f0304b-143f-40a9-8933-6e0bffacba74",
       "name": "Buscar lotes parados",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -572,7 +572,7 @@
       }
     },
     {
-      "id": "f6e67168-7252-4322-be86-d634b6c7363a",
+      "id": "26600c4e-1ab2-4573-9131-77e634cb119b",
       "name": "Travar lote (processing)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -593,7 +593,7 @@
       }
     },
     {
-      "id": "6d57a197-13e4-4b9b-a547-bb893b2e3346",
+      "id": "44300ddd-37f1-4c2f-876d-f1f55d63fd0e",
       "name": "Montar SQL - agregados das fotos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -608,7 +608,7 @@
       }
     },
     {
-      "id": "c57c6d28-692d-40d0-9730-34921cee643c",
+      "id": "609d7cee-7bf0-4677-9b3f-952e4cdeaa56",
       "name": "Buscar agregados das fotos",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -629,7 +629,7 @@
       }
     },
     {
-      "id": "711c7171-de63-4496-9c2e-ca38c6b7cdbc",
+      "id": "c7842b0c-fd27-4063-916e-ba862558e224",
       "name": "Escolher numeros e montar SQL de salvar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -644,7 +644,7 @@
       }
     },
     {
-      "id": "593da288-11aa-436d-8155-0b472be971e3",
+      "id": "3c439bb1-bc5e-4c46-902a-60bac562da95",
       "name": "Salvar numeros no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -665,7 +665,7 @@
       }
     },
     {
-      "id": "a3377fa0-10f1-4db6-bca5-f9603dd1c639",
+      "id": "9d12c329-1a70-4ed4-aba9-02db00bb547c",
       "name": "Montar SQL - candidatos de booking",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -680,7 +680,7 @@
       }
     },
     {
-      "id": "463d4547-14aa-4cfe-b4bb-0f52199312c3",
+      "id": "13aa5361-ddac-4796-b542-89df4aa08e13",
       "name": "Buscar candidatos de booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -701,7 +701,7 @@
       }
     },
     {
-      "id": "30807f9d-2db6-42d8-af7c-9b39b1fc1abb",
+      "id": "c4627be5-51ef-433f-bd3d-e4ee55ab55e4",
       "name": "Decidir booking automatico",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -716,7 +716,7 @@
       }
     },
     {
-      "id": "514e5ce2-78e1-4e72-8763-72390a52ed81",
+      "id": "eb262aa0-f5b3-442b-8aa6-cb00ea9350eb",
       "name": "Gate - Resolvido automaticamente",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -731,7 +731,7 @@
       }
     },
     {
-      "id": "c53aa854-7a4b-443c-84cf-20fa48b57cd1",
+      "id": "61995ffa-43d8-413b-9a7a-81a894b14ad8",
       "name": "Gate - Ambiguo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -746,7 +746,7 @@
       }
     },
     {
-      "id": "128a187d-58b4-44af-9530-fb138e11c59a",
+      "id": "26983841-37cf-43b9-8fe7-9d2ad7c55cf8",
       "name": "Montar SQL - gravar booking no lote",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -761,7 +761,7 @@
       }
     },
     {
-      "id": "e58f54b5-57ad-48cd-81f3-ffd753a82075",
+      "id": "fe94638d-4374-4dac-ab5a-f578bea1b411",
       "name": "Gravar booking no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -782,7 +782,7 @@
       }
     },
     {
-      "id": "7bd0a935-7c6f-4a0a-ac85-5844cbe3b172",
+      "id": "7a0ee23f-6367-4eb5-9170-ab5e968e7eb5",
       "name": "Montar SQL - aguardar escolha no grupo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -797,7 +797,7 @@
       }
     },
     {
-      "id": "a03c60f4-3b52-4328-8e94-a1cb26daebc4",
+      "id": "ccc6d8f1-e579-41e8-a1c3-1f5d8e333e3b",
       "name": "Gravar status aguardando",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -818,7 +818,7 @@
       }
     },
     {
-      "id": "350ece6f-4c17-498b-bab9-7393de4b6871",
+      "id": "8205e4cb-4e34-40a6-bc7f-7062365f98bd",
       "name": "Responder pedido de escolha no grupo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -854,7 +854,7 @@
       }
     },
     {
-      "id": "63f788d2-f35a-4426-9ce0-bb2cf34467d9",
+      "id": "354ee1e9-6372-48aa-9ee1-d23fed007bdf",
       "name": "Buscar dados do lote e booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -875,7 +875,7 @@
       }
     },
     {
-      "id": "6219db24-85b8-439a-ac39-a2cc8f8141a6",
+      "id": "69a4e631-0fcb-48f6-95dd-8a9ab521bc42",
       "name": "Buscar fotos do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -896,7 +896,7 @@
       }
     },
     {
-      "id": "b4ca92fa-d0ff-4bea-9b3c-ba5f550b3ca3",
+      "id": "d01b864c-edd3-4e51-ba7d-b08dd264af7a",
       "name": "Consolidar e preparar anexos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -911,7 +911,7 @@
       }
     },
     {
-      "id": "cb00bdf5-5960-4aac-af4f-61124194e581",
+      "id": "4b87b20e-1c03-46a2-ad67-335b5335e5c2",
       "name": "Enviar e-mail com fotos",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -937,7 +937,7 @@
       }
     },
     {
-      "id": "39f86132-54d2-415c-994d-23504d9bd900",
+      "id": "06f3c29a-8895-45fd-858c-0c0fa2c12684",
       "name": "Montar PDF do relatorio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -952,7 +952,7 @@
       }
     },
     {
-      "id": "23b3465c-bcfb-4408-8609-f43cec8d30d1",
+      "id": "b4fcab06-d02a-405d-97bf-703f7e0e54d9",
       "name": "Montar lista de envio do PDF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -967,7 +967,7 @@
       }
     },
     {
-      "id": "6deaf78e-b103-4d97-b771-9659080a9c4c",
+      "id": "ef4829c1-e156-4ab3-825a-003230058474",
       "name": "Enviar PDF por WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1003,7 +1003,7 @@
       }
     },
     {
-      "id": "81679a16-f2f9-46a3-9972-aa0a98ea9323",
+      "id": "9c5a1962-d360-450f-a333-033870e4d725",
       "name": "Montar mensagem do grupo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1018,7 +1018,7 @@
       }
     },
     {
-      "id": "3daba879-6767-4472-af76-bc48f8a653c4",
+      "id": "ebab939e-1c90-44db-a137-f70ba015b12b",
       "name": "Responder no grupo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1054,7 +1054,7 @@
       }
     },
     {
-      "id": "4b3ef24b-00c8-41e1-85b1-49fbcd06ca20",
+      "id": "ddc1318f-cfd9-478f-96b5-c12c70685a51",
       "name": "Montar SQL - progresso e conclusao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1069,7 +1069,7 @@
       }
     },
     {
-      "id": "459ed88b-7c40-42c5-93ef-1c7f3979c76b",
+      "id": "e32ad201-41b6-408b-885a-b144bfd67225",
       "name": "Atualizar progresso do booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -1090,7 +1090,7 @@
       }
     },
     {
-      "id": "f619334f-2190-4fd3-97da-38ae3c353227",
+      "id": "4a792e76-6425-44e0-83eb-0e0b0cad7d0c",
       "name": "Marcar lote como concluido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
