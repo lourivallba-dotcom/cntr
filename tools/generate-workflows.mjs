@@ -237,7 +237,7 @@ function pg(name, queryExpr, position) {
   };
 }
 
-function httpNode(name, { method, url, jsonBodyExpr, credName, credId, notes }, position) {
+function httpNode(name, { method, url, jsonBodyExpr, credName, credId, notes, extraHeaders }, position) {
   return {
     id: randomUUID(),
     name,
@@ -251,7 +251,9 @@ function httpNode(name, { method, url, jsonBodyExpr, credName, credId, notes }, 
       authentication: "genericCredentialType",
       genericAuthType: "httpHeaderAuth",
       sendHeaders: true,
-      headerParameters: { parameters: [{ name: "Content-Type", value: "application/json" }] },
+      headerParameters: {
+        parameters: [{ name: "Content-Type", value: "application/json" }, ...(extraHeaders || [])],
+      },
       sendBody: true,
       specifyBody: "json",
       jsonBody: jsonBodyExpr,
@@ -407,7 +409,14 @@ link(nGateImagem, nBuscarBase64);
 const nVision = add(
   httpNode(
     "Vision - Classificar imagem",
-    { method: "POST", url: ANTHROPIC_URL, jsonBodyExpr: anthropicBodyExpr, credName: "Anthropic API Key", credId: "2" },
+    {
+      method: "POST",
+      url: ANTHROPIC_URL,
+      jsonBodyExpr: anthropicBodyExpr,
+      credName: "Anthropic API Key",
+      credId: "2",
+      extraHeaders: [{ name: "anthropic-version", value: "2023-06-01" }],
+    },
     pos("t1", LANE_T1),
   ),
 );
