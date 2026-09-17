@@ -623,7 +623,7 @@ const nGateLoteCompleto = add(
       `const EXPECTED = ${JSON.stringify(cfg.batch.expectedPhotos)};`,
       "const items = $input.all();",
       "const out = [];",
-      "for (const item of items) { if ((item.json.photo_count || 0) >= EXPECTED) out.push(item); }",
+      "for (const item of items) { if ((item.json.photo_count || 0) === EXPECTED) out.push(item); }",
       "return out;",
     ],
     pos("foto", LANE_FOTO),

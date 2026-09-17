@@ -13,7 +13,8 @@
   },
 
   "batch": {
-    "expectedPhotos": 5,
+    "_comment": "expectedPhotos = quantas fotos fecham o lote automaticamente (o lote so e finalizado quando a contagem bate exatamente nesse numero - ajuste para bater com a quantidade real que o time costuma mandar por operacao). E-mail e PDF sempre incluem TODAS as fotos enviadas no lote, sem limite fixo.",
+    "expectedPhotos": 7,
     "windowSeconds": 60,
     "sweepIntervalMinutes": 1
   },
