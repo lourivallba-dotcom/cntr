@@ -353,7 +353,7 @@ const anthropicBodyCodeLines = [
   "  const j = item.json;",
   "  const body = {",
   "    model: MODEL,",
-  "    max_tokens: 1200,",
+  "    max_tokens: 4096,",
   "    system: SYSTEM_PROMPT_TEXT,",
   "    tools: TOOLS,",
   '    tool_choice: { type: "tool", name: "report_incoming_image" },',
