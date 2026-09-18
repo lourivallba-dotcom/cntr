@@ -73,7 +73,10 @@ const HELPER_PRELUDE = [
 // re-decodificacao da imagem embutida byte a byte) antes de ser embutida
 // aqui.
 // ---------------------------------------------------------------------------
+const LOGO_JPEG_BASE64 = readFileSync(path.join(__dirname, "logo.b64.txt"), "utf-8").trim();
+
 const HELPER_PDF = [
+  `const LOGO_BASE64 = ${JSON.stringify(LOGO_JPEG_BASE64)};`,
   "function toLatin1(str) { let o=''; for (const ch of String(str)) { const c = ch.codePointAt(0); o += c<=255?ch:'?'; } return o; }",
   "function escapePdfString(str) { return str.replace(/\\\\/g,'\\\\\\\\').replace(/\\(/g,'\\\\(').replace(/\\)/g,'\\\\)'); }",
   "function getJpegSize(buf) {",
@@ -94,15 +97,21 @@ const HELPER_PDF = [
   "  const PAGE_W = 595, PAGE_H = 842, MARGIN = 50;",
   "  const objs = [];",
   "  function push(dict, streamBinaryString) { objs.push({ dict, stream: streamBinaryString === undefined ? null : streamBinaryString }); return objs.length; }",
-  "  const kids = [4];",
-  "  for (let i = 0; i < photos.length; i++) kids.push(7 + 3*i);",
+  "  const kids = [5];",
+  "  for (let i = 0; i < photos.length; i++) kids.push(8 + 3*i);",
   "  push('<< /Type /Catalog /Pages 2 0 R >>');",
   "  push('<< /Type /Pages /Kids [' + kids.map(function(k){ return k + ' 0 R'; }).join(' ') + '] /Count ' + kids.length + ' >>');",
   "  push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');",
+  "  const logoBuf = Buffer.from(LOGO_BASE64, 'base64');",
+  "  const logoSize = getJpegSize(logoBuf);",
+  "  const logoW = 60, logoH = logoW * (logoSize.height / logoSize.width);",
+  "  const logoX = PAGE_W - MARGIN - logoW, logoY = PAGE_H - 40 - logoH;",
+  "  push('<< /Type /XObject /Subtype /Image /Width ' + logoSize.width + ' /Height ' + logoSize.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + logoBuf.length + ' >>', logoBuf.toString('latin1'));",
   "  const titleSafe = escapePdfString(toLatin1(title));",
   "  const lineOps = summaryLines.map(function(l){ return '(' + escapePdfString(toLatin1(l)) + ') Tj T*'; }).join('\\n');",
-  "  const summaryContent = 'BT /F1 14 Tf ' + MARGIN + ' 780 Td (' + titleSafe + ') Tj ET\\n' + 'BT /F1 11 Tf ' + MARGIN + ' 750 Td 16 TL\\n' + lineOps + '\\nET';",
-  "  push('<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> >> /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Contents 5 0 R >>');",
+  "  const logoOp = 'q ' + logoW.toFixed(2) + ' 0 0 ' + logoH.toFixed(2) + ' ' + logoX.toFixed(2) + ' ' + logoY.toFixed(2) + ' cm /ImLogo Do Q';",
+  "  const summaryContent = logoOp + '\\nBT /F1 14 Tf ' + MARGIN + ' 780 Td (' + titleSafe + ') Tj ET\\n' + 'BT /F1 11 Tf ' + MARGIN + ' 750 Td 16 TL\\n' + lineOps + '\\nET';",
+  "  push('<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> /XObject << /ImLogo 4 0 R >> >> /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Contents 6 0 R >>');",
   "  push('<< /Length ' + summaryContent.length + ' >>', summaryContent);",
   "  const maxW = PAGE_W - MARGIN*2;",
   "  const maxH = PAGE_H - 120;",

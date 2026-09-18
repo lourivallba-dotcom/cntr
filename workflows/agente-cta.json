@@ -2,7 +2,7 @@
   "name": "Agente CTA - WhatsApp (Programacao + Flex Tanque)",
   "nodes": [
     {
-      "id": "6c143e68-ce24-45ff-a8e8-08fba97f2e38",
+      "id": "2a964641-3004-4d1b-b6bf-0bcc1e23ac6a",
       "name": "Webhook Evolution",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -10,7 +10,7 @@
         280,
         0
       ],
-      "webhookId": "b404ee05-d535-45e3-896a-1d1fae4888f5",
+      "webhookId": "21c65f18-c176-4730-90ac-04549d4ffe7d",
       "parameters": {
         "httpMethod": "POST",
         "path": "evolution-webhook",
@@ -20,7 +20,7 @@
       }
     },
     {
-      "id": "872ab2d0-91cb-4407-81fa-528e8a9b30bd",
+      "id": "566ec697-e455-4f9a-824b-ec26c5cfa73a",
       "name": "Normalizar mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "73ae1c3f-aabd-411b-a2d7-4cda779debe2",
+      "id": "88335899-ed06-43ee-bfa5-2ade88fc0a90",
       "name": "Gate - Eh imagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -50,7 +50,7 @@
       }
     },
     {
-      "id": "08d2b8f4-4bdc-4452-9a9d-5950e9acc477",
+      "id": "753c9708-96ab-4ca4-9450-f5ded8ec4182",
       "name": "Buscar midia base64",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -86,7 +86,7 @@
       }
     },
     {
-      "id": "484b1e76-07ee-470d-bc42-a5e8657f7b76",
+      "id": "c9363b4d-44fb-43d8-a224-7f103a705dbb",
       "name": "Montar corpo da requisicao Vision",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -101,7 +101,7 @@
       }
     },
     {
-      "id": "9782e2e4-f60e-4206-a424-5f67cb66b56b",
+      "id": "0486c882-d5af-47d7-a8c4-1641d44597c2",
       "name": "Vision - Classificar imagem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -141,7 +141,7 @@
       }
     },
     {
-      "id": "8a16edd1-b1fc-4d0d-bdf2-c74e12ed3b67",
+      "id": "037e09e7-907c-4eb1-9290-cdc4e317ecab",
       "name": "Extrair analise da imagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -156,7 +156,7 @@
       }
     },
     {
-      "id": "617f37ec-5f7b-43dc-93d7-e784f3ccc79b",
+      "id": "d1d906c8-7b2a-4662-b0da-05d6b7f28b20",
       "name": "Preparar linhas da programacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -171,7 +171,7 @@
       }
     },
     {
-      "id": "d74b107c-7202-415c-84f5-a238940e73d4",
+      "id": "6a4ec2a4-6b76-428c-9df8-3677738558ab",
       "name": "Upsert booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -192,7 +192,7 @@
       }
     },
     {
-      "id": "d10de5f2-6097-4583-b561-786c35dd5ea1",
+      "id": "7278b79c-aa16-4f72-8ada-29cf8fe6f9ca",
       "name": "Montar resumo da programacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -207,7 +207,7 @@
       }
     },
     {
-      "id": "79e1c738-6e7b-4a8b-96dd-514f59628c95",
+      "id": "c5425f27-3421-4883-9cbc-581d6d7a22ab",
       "name": "Responder confirmacao da programacao",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -243,7 +243,7 @@
       }
     },
     {
-      "id": "981125be-ea2c-4a95-89bf-09b32617cc56",
+      "id": "9863146a-3e4e-4eae-a548-13835798459e",
       "name": "Preparar foto de operacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -258,7 +258,7 @@
       }
     },
     {
-      "id": "8d44fa89-6e5b-446a-84f8-f66604253ff6",
+      "id": "f0520eab-460b-4e96-9b63-3954f17e765d",
       "name": "Garantir lote aberto",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -279,7 +279,7 @@
       }
     },
     {
-      "id": "41d98b23-6f9a-479d-a060-2d4c8e791bdb",
+      "id": "98d4291e-ea1e-4b34-a813-ce07f34cbd11",
       "name": "Obter lote aberto",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -300,7 +300,7 @@
       }
     },
     {
-      "id": "e8910470-4206-4e39-b13e-a7f57089aff8",
+      "id": "a39150ec-e18c-4aab-bd60-e60878f6e6df",
       "name": "Preparar insercao da foto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -315,7 +315,7 @@
       }
     },
     {
-      "id": "c0f1b135-4470-4165-983c-7224bfafd463",
+      "id": "beee547d-4234-4cb0-b8a4-db4643647ec2",
       "name": "Salvar foto no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -336,7 +336,7 @@
       }
     },
     {
-      "id": "b47bf445-9863-42b9-9af5-059d66189b44",
+      "id": "cbb5b134-69f3-42ed-91bc-71c0fc12a2aa",
       "name": "Atualizar timestamp do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -357,7 +357,7 @@
       }
     },
     {
-      "id": "865fd247-69ce-4460-9efc-21710168930c",
+      "id": "8507ad96-31cf-4136-9c99-40f91f33a9b8",
       "name": "Contar fotos do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -378,7 +378,7 @@
       }
     },
     {
-      "id": "e89467c2-2665-4b58-b4ed-7073b060574e",
+      "id": "284327a7-279c-4760-855e-22b017f492c9",
       "name": "Gate - Lote completo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -393,7 +393,7 @@
       }
     },
     {
-      "id": "a7ddaafb-616c-432a-9294-13c09ae118b2",
+      "id": "5f331938-0354-417a-bb23-f538a3637585",
       "name": "Gate - Eh texto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -408,7 +408,7 @@
       }
     },
     {
-      "id": "0fcfa1f0-41b5-4743-9b3c-ee9a4028689e",
+      "id": "3aaf4de1-3db1-4508-8501-6b2a9464a0ec",
       "name": "Preparar busca de lote aguardando",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -423,7 +423,7 @@
       }
     },
     {
-      "id": "14eeaabb-fb34-4843-aaf2-31e1fd202de5",
+      "id": "e4748882-9959-4f1e-978d-0a331e43059e",
       "name": "Buscar lote aguardando escolha",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -444,7 +444,7 @@
       }
     },
     {
-      "id": "e3ca0f14-d9f3-41b7-8342-72cf44137b67",
+      "id": "76b9a4e3-db97-4946-aa66-4e40bbbeb8e9",
       "name": "Tentar casar texto com candidato",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -459,7 +459,7 @@
       }
     },
     {
-      "id": "edf51915-3adb-49ef-87c6-4da294273fea",
+      "id": "b9a2fea8-306b-4ce8-865d-c258eb9f719b",
       "name": "Preparar busca do booking escolhido",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -474,7 +474,7 @@
       }
     },
     {
-      "id": "cc66b1c7-3029-4e87-9938-644dd7d99114",
+      "id": "8bf32271-1212-441b-a3cd-d2820a265fbc",
       "name": "Buscar id do booking escolhido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -495,7 +495,7 @@
       }
     },
     {
-      "id": "f8701162-290f-4295-aaa7-3e157150aa51",
+      "id": "90f74529-bb8d-4a99-a82f-907b43d91b39",
       "name": "Preparar gravacao do booking resolvido",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -510,7 +510,7 @@
       }
     },
     {
-      "id": "59c0fc6a-6f35-4c5c-92be-fa9258410307",
+      "id": "f8de0cc2-f5c0-45c8-bd7e-165e35ed6628",
       "name": "Gravar booking resolvido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -531,7 +531,7 @@
       }
     },
     {
-      "id": "61bdd431-688e-4022-80dc-20669c8a2c57",
+      "id": "0f22c8af-7f08-45bb-bec7-3751632cd9fb",
       "name": "Agendamento - Verificar Lotes Parados",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -551,7 +551,7 @@
       }
     },
     {
-      "id": "17f0304b-143f-40a9-8933-6e0bffacba74",
+      "id": "79581296-9d3d-4a5a-b16f-c1bb863164cc",
       "name": "Buscar lotes parados",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -572,7 +572,7 @@
       }
     },
     {
-      "id": "26600c4e-1ab2-4573-9131-77e634cb119b",
+      "id": "2d834c68-d651-428c-9e8e-d10e2dfde44a",
       "name": "Travar lote (processing)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -593,7 +593,7 @@
       }
     },
     {
-      "id": "44300ddd-37f1-4c2f-876d-f1f55d63fd0e",
+      "id": "35c6fe84-5e96-4145-9f4f-0752416c9794",
       "name": "Montar SQL - agregados das fotos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -608,7 +608,7 @@
       }
     },
     {
-      "id": "609d7cee-7bf0-4677-9b3f-952e4cdeaa56",
+      "id": "41f754bf-570d-48bd-b668-3d6b7a4aab46",
       "name": "Buscar agregados das fotos",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -629,7 +629,7 @@
       }
     },
     {
-      "id": "c7842b0c-fd27-4063-916e-ba862558e224",
+      "id": "007f0467-6a69-4c9e-b47a-b90eef605866",
       "name": "Escolher numeros e montar SQL de salvar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -644,7 +644,7 @@
       }
     },
     {
-      "id": "3c439bb1-bc5e-4c46-902a-60bac562da95",
+      "id": "188e53e0-9aa2-4d4c-b94c-08e20519d17d",
       "name": "Salvar numeros no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -665,7 +665,7 @@
       }
     },
     {
-      "id": "9d12c329-1a70-4ed4-aba9-02db00bb547c",
+      "id": "d0e2b622-88dd-4775-a11f-c112dfd500c6",
       "name": "Montar SQL - candidatos de booking",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -680,7 +680,7 @@
       }
     },
     {
-      "id": "13aa5361-ddac-4796-b542-89df4aa08e13",
+      "id": "79108bd0-6ccb-42f9-acaa-27369ccb499c",
       "name": "Buscar candidatos de booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -701,7 +701,7 @@
       }
     },
     {
-      "id": "c4627be5-51ef-433f-bd3d-e4ee55ab55e4",
+      "id": "ce0343d5-0f8d-493e-adc6-9231cbe02659",
       "name": "Decidir booking automatico",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -716,7 +716,7 @@
       }
     },
     {
-      "id": "eb262aa0-f5b3-442b-8aa6-cb00ea9350eb",
+      "id": "499fcbd9-c425-4db3-8ee6-08b032ceda46",
       "name": "Gate - Resolvido automaticamente",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -731,7 +731,7 @@
       }
     },
     {
-      "id": "61995ffa-43d8-413b-9a7a-81a894b14ad8",
+      "id": "93831bdc-da80-49fb-9ce1-56e47adbc567",
       "name": "Gate - Ambiguo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -746,7 +746,7 @@
       }
     },
     {
-      "id": "26983841-37cf-43b9-8fe7-9d2ad7c55cf8",
+      "id": "e82d93f2-82b4-4655-b77b-0ea836ccf9ad",
       "name": "Montar SQL - gravar booking no lote",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -761,7 +761,7 @@
       }
     },
     {
-      "id": "fe94638d-4374-4dac-ab5a-f578bea1b411",
+      "id": "6c9130a4-4c82-4aed-8bff-c1bda6f81c69",
       "name": "Gravar booking no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -782,7 +782,7 @@
       }
     },
     {
-      "id": "7a0ee23f-6367-4eb5-9170-ab5e968e7eb5",
+      "id": "a3ba056e-3c40-49cd-84d3-307393d5c297",
       "name": "Montar SQL - aguardar escolha no grupo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -797,7 +797,7 @@
       }
     },
     {
-      "id": "ccc6d8f1-e579-41e8-a1c3-1f5d8e333e3b",
+      "id": "6bb50a38-b5ce-4220-8d84-478b53117fba",
       "name": "Gravar status aguardando",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -818,7 +818,7 @@
       }
     },
     {
-      "id": "8205e4cb-4e34-40a6-bc7f-7062365f98bd",
+      "id": "8cf5d0cc-d5f4-4e6b-9b03-449239f60ec6",
       "name": "Responder pedido de escolha no grupo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -854,7 +854,7 @@
       }
     },
     {
-      "id": "354ee1e9-6372-48aa-9ee1-d23fed007bdf",
+      "id": "6f9ed787-f700-4937-a953-70e03ab713ff",
       "name": "Buscar dados do lote e booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -875,7 +875,7 @@
       }
     },
     {
-      "id": "69a4e631-0fcb-48f6-95dd-8a9ab521bc42",
+      "id": "802eeec9-a1f4-4e53-a6bd-a56271250036",
       "name": "Buscar fotos do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -896,7 +896,7 @@
       }
     },
     {
-      "id": "d01b864c-edd3-4e51-ba7d-b08dd264af7a",
+      "id": "f53c7349-b970-443b-b5b6-64d19793bfc2",
       "name": "Consolidar e preparar anexos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -911,7 +911,7 @@
       }
     },
     {
-      "id": "4b87b20e-1c03-46a2-ad67-335b5335e5c2",
+      "id": "516de4dc-2ced-4daa-82aa-ec52457f6918",
       "name": "Enviar e-mail com fotos",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -937,7 +937,7 @@
       }
     },
     {
-      "id": "06f3c29a-8895-45fd-858c-0c0fa2c12684",
+      "id": "88cf9988-5634-4a54-b610-f3f0bbb8fe8f",
       "name": "Montar PDF do relatorio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -948,11 +948,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "function toLatin1(str) { let o=''; for (const ch of String(str)) { const c = ch.codePointAt(0); o += c<=255?ch:'?'; } return o; }\nfunction escapePdfString(str) { return str.replace(/\\\\/g,'\\\\\\\\').replace(/\\(/g,'\\\\(').replace(/\\)/g,'\\\\)'); }\nfunction getJpegSize(buf) {\n  let offset = 2;\n  while (offset < buf.length - 1) {\n    if (buf[offset] !== 0xff) { offset++; continue; }\n    const marker = buf[offset+1];\n    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { offset += 2; continue; }\n    if (marker === 0xd9 || offset+3 >= buf.length) break;\n    const segLen = buf.readUInt16BE(offset+2);\n    const isSof = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;\n    if (isSof) { const height = buf.readUInt16BE(offset+5); const width = buf.readUInt16BE(offset+7); return { width, height }; }\n    offset += 2 + segLen;\n  }\n  return { width: 800, height: 600 };\n}\nfunction buildOperationPdf(title, summaryLines, photos) {\n  const PAGE_W = 595, PAGE_H = 842, MARGIN = 50;\n  const objs = [];\n  function push(dict, streamBinaryString) { objs.push({ dict, stream: streamBinaryString === undefined ? null : streamBinaryString }); return objs.length; }\n  const kids = [4];\n  for (let i = 0; i < photos.length; i++) kids.push(7 + 3*i);\n  push('<< /Type /Catalog /Pages 2 0 R >>');\n  push('<< /Type /Pages /Kids [' + kids.map(function(k){ return k + ' 0 R'; }).join(' ') + '] /Count ' + kids.length + ' >>');\n  push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');\n  const titleSafe = escapePdfString(toLatin1(title));\n  const lineOps = summaryLines.map(function(l){ return '(' + escapePdfString(toLatin1(l)) + ') Tj T*'; }).join('\\n');\n  const summaryContent = 'BT /F1 14 Tf ' + MARGIN + ' 780 Td (' + titleSafe + ') Tj ET\\n' + 'BT /F1 11 Tf ' + MARGIN + ' 750 Td 16 TL\\n' + lineOps + '\\nET';\n  push('<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> >> /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Contents 5 0 R >>');\n  push('<< /Length ' + summaryContent.length + ' >>', summaryContent);\n  const maxW = PAGE_W - MARGIN*2;\n  const maxH = PAGE_H - 120;\n  for (const photo of photos) {\n    const size = getJpegSize(photo.buffer);\n    const aspect = size.width / size.height;\n    let drawW = maxW, drawH = maxW / aspect;\n    if (drawH > maxH) { drawH = maxH; drawW = maxH * aspect; }\n    const x = MARGIN + (maxW - drawW) / 2;\n    const y = 40 + (maxH - drawH) / 2;\n    const imgId = push('<< /Type /XObject /Subtype /Image /Width ' + size.width + ' /Height ' + size.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + photo.buffer.length + ' >>', photo.buffer.toString('latin1'));\n    const captionSafe = escapePdfString(toLatin1(photo.label || ''));\n    const pageContent = 'BT /F1 13 Tf ' + MARGIN + ' 810 Td (' + captionSafe + ') Tj ET\\n' + 'q ' + drawW.toFixed(2) + ' 0 0 ' + drawH.toFixed(2) + ' ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' cm /Im1 Do Q';\n    push('<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> /XObject << /Im1 ' + imgId + ' 0 R >> >> /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Contents ' + (imgId+2) + ' 0 R >>');\n    push('<< /Length ' + pageContent.length + ' >>', pageContent);\n  }\n  let pdf = '%PDF-1.4\\n';\n  const offsets = [0];\n  objs.forEach(function(obj, i) {\n    offsets.push(pdf.length);\n    pdf += (i+1) + ' 0 obj\\n' + obj.dict + '\\n';\n    if (obj.stream !== null) pdf += 'stream\\n' + obj.stream + '\\nendstream\\n';\n    pdf += 'endobj\\n';\n  });\n  const xrefOffset = pdf.length;\n  const total = objs.length + 1;\n  pdf += 'xref\\n0 ' + total + '\\n0000000000 65535 f \\n';\n  for (let i=1;i<total;i++) pdf += String(offsets[i]).padStart(10,'0') + ' 00000 n \\n';\n  pdf += 'trailer\\n<< /Size ' + total + ' /Root 1 0 R >>\\nstartxref\\n' + xrefOffset + '\\n%%EOF';\n  return Buffer.from(pdf, 'latin1');\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const lines = [];\n  lines.push('Container: ' + (j.containerNumber || 'NAO IDENTIFICADO'));\n  lines.push('Flex tanque: ' + (j.flexTankNumber || 'NAO IDENTIFICADO') + (j.flexLotNo ? (' (Lot No: ' + j.flexLotNo + ')') : ''));\n  if (j.booking) {\n    lines.push('Booking: ' + j.booking + ' - Planta: ' + (j.loadingPlant || '-') + ' - Armador: ' + (j.carrier || '-'));\n    lines.push('Progresso: ' + ((Number(j.qtyAssembled)||0)+1) + ' de ' + (j.qtyContainers || '?') + ' montados.');\n    if (j.notes) lines.push('Obs: ' + j.notes);\n  } else {\n    lines.push('Booking: NAO LOCALIZADO - favor confirmar manualmente.');\n  }\n  lines.push('Grupo: ' + (j.groupName || j.groupId));\n  lines.push('Enviado por: ' + (j.senderName || '-'));\n  lines.push('Data/hora: ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));\n  const binary = item.binary || {};\n  const photoLabels = j.photoLabels || {};\n  const photos = [];\n  const skipped = [];\n  for (const key of Object.keys(binary)) {\n    const b = binary[key];\n    const label = photoLabels[key] || 'Foto';\n    if (b.mimeType && b.mimeType.indexOf('jpeg') === -1 && b.mimeType.indexOf('jpg') === -1) { skipped.push(label); continue; }\n    photos.push({ label, buffer: Buffer.from(b.data, 'base64') });\n  }\n  if (skipped.length) lines.push('(Nao incluidas no PDF - formato nao suportado: ' + skipped.join(', ') + ')');\n  const pdfBuffer = buildOperationPdf('Relatorio de Operacao - Flex Tanque', lines, photos);\n  out.push({ json: { ...j, pdfBase64: pdfBuffer.toString('base64') } });\n}\nreturn out;"
+        "jsCode": "const LOGO_BASE64 = \"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\";\nfunction toLatin1(str) { let o=''; for (const ch of String(str)) { const c = ch.codePointAt(0); o += c<=255?ch:'?'; } return o; }\nfunction escapePdfString(str) { return str.replace(/\\\\/g,'\\\\\\\\').replace(/\\(/g,'\\\\(').replace(/\\)/g,'\\\\)'); }\nfunction getJpegSize(buf) {\n  let offset = 2;\n  while (offset < buf.length - 1) {\n    if (buf[offset] !== 0xff) { offset++; continue; }\n    const marker = buf[offset+1];\n    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { offset += 2; continue; }\n    if (marker === 0xd9 || offset+3 >= buf.length) break;\n    const segLen = buf.readUInt16BE(offset+2);\n    const isSof = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;\n    if (isSof) { const height = buf.readUInt16BE(offset+5); const width = buf.readUInt16BE(offset+7); return { width, height }; }\n    offset += 2 + segLen;\n  }\n  return { width: 800, height: 600 };\n}\nfunction buildOperationPdf(title, summaryLines, photos) {\n  const PAGE_W = 595, PAGE_H = 842, MARGIN = 50;\n  const objs = [];\n  function push(dict, streamBinaryString) { objs.push({ dict, stream: streamBinaryString === undefined ? null : streamBinaryString }); return objs.length; }\n  const kids = [5];\n  for (let i = 0; i < photos.length; i++) kids.push(8 + 3*i);\n  push('<< /Type /Catalog /Pages 2 0 R >>');\n  push('<< /Type /Pages /Kids [' + kids.map(function(k){ return k + ' 0 R'; }).join(' ') + '] /Count ' + kids.length + ' >>');\n  push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');\n  const logoBuf = Buffer.from(LOGO_BASE64, 'base64');\n  const logoSize = getJpegSize(logoBuf);\n  const logoW = 60, logoH = logoW * (logoSize.height / logoSize.width);\n  const logoX = PAGE_W - MARGIN - logoW, logoY = PAGE_H - 40 - logoH;\n  push('<< /Type /XObject /Subtype /Image /Width ' + logoSize.width + ' /Height ' + logoSize.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + logoBuf.length + ' >>', logoBuf.toString('latin1'));\n  const titleSafe = escapePdfString(toLatin1(title));\n  const lineOps = summaryLines.map(function(l){ return '(' + escapePdfString(toLatin1(l)) + ') Tj T*'; }).join('\\n');\n  const logoOp = 'q ' + logoW.toFixed(2) + ' 0 0 ' + logoH.toFixed(2) + ' ' + logoX.toFixed(2) + ' ' + logoY.toFixed(2) + ' cm /ImLogo Do Q';\n  const summaryContent = logoOp + '\\nBT /F1 14 Tf ' + MARGIN + ' 780 Td (' + titleSafe + ') Tj ET\\n' + 'BT /F1 11 Tf ' + MARGIN + ' 750 Td 16 TL\\n' + lineOps + '\\nET';\n  push('<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> /XObject << /ImLogo 4 0 R >> >> /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Contents 6 0 R >>');\n  push('<< /Length ' + summaryContent.length + ' >>', summaryContent);\n  const maxW = PAGE_W - MARGIN*2;\n  const maxH = PAGE_H - 120;\n  for (const photo of photos) {\n    const size = getJpegSize(photo.buffer);\n    const aspect = size.width / size.height;\n    let drawW = maxW, drawH = maxW / aspect;\n    if (drawH > maxH) { drawH = maxH; drawW = maxH * aspect; }\n    const x = MARGIN + (maxW - drawW) / 2;\n    const y = 40 + (maxH - drawH) / 2;\n    const imgId = push('<< /Type /XObject /Subtype /Image /Width ' + size.width + ' /Height ' + size.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + photo.buffer.length + ' >>', photo.buffer.toString('latin1'));\n    const captionSafe = escapePdfString(toLatin1(photo.label || ''));\n    const pageContent = 'BT /F1 13 Tf ' + MARGIN + ' 810 Td (' + captionSafe + ') Tj ET\\n' + 'q ' + drawW.toFixed(2) + ' 0 0 ' + drawH.toFixed(2) + ' ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' cm /Im1 Do Q';\n    push('<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> /XObject << /Im1 ' + imgId + ' 0 R >> >> /MediaBox [0 0 ' + PAGE_W + ' ' + PAGE_H + '] /Contents ' + (imgId+2) + ' 0 R >>');\n    push('<< /Length ' + pageContent.length + ' >>', pageContent);\n  }\n  let pdf = '%PDF-1.4\\n';\n  const offsets = [0];\n  objs.forEach(function(obj, i) {\n    offsets.push(pdf.length);\n    pdf += (i+1) + ' 0 obj\\n' + obj.dict + '\\n';\n    if (obj.stream !== null) pdf += 'stream\\n' + obj.stream + '\\nendstream\\n';\n    pdf += 'endobj\\n';\n  });\n  const xrefOffset = pdf.length;\n  const total = objs.length + 1;\n  pdf += 'xref\\n0 ' + total + '\\n0000000000 65535 f \\n';\n  for (let i=1;i<total;i++) pdf += String(offsets[i]).padStart(10,'0') + ' 00000 n \\n';\n  pdf += 'trailer\\n<< /Size ' + total + ' /Root 1 0 R >>\\nstartxref\\n' + xrefOffset + '\\n%%EOF';\n  return Buffer.from(pdf, 'latin1');\n}\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const lines = [];\n  lines.push('Container: ' + (j.containerNumber || 'NAO IDENTIFICADO'));\n  lines.push('Flex tanque: ' + (j.flexTankNumber || 'NAO IDENTIFICADO') + (j.flexLotNo ? (' (Lot No: ' + j.flexLotNo + ')') : ''));\n  if (j.booking) {\n    lines.push('Booking: ' + j.booking + ' - Planta: ' + (j.loadingPlant || '-') + ' - Armador: ' + (j.carrier || '-'));\n    lines.push('Progresso: ' + ((Number(j.qtyAssembled)||0)+1) + ' de ' + (j.qtyContainers || '?') + ' montados.');\n    if (j.notes) lines.push('Obs: ' + j.notes);\n  } else {\n    lines.push('Booking: NAO LOCALIZADO - favor confirmar manualmente.');\n  }\n  lines.push('Grupo: ' + (j.groupName || j.groupId));\n  lines.push('Enviado por: ' + (j.senderName || '-'));\n  lines.push('Data/hora: ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));\n  const binary = item.binary || {};\n  const photoLabels = j.photoLabels || {};\n  const photos = [];\n  const skipped = [];\n  for (const key of Object.keys(binary)) {\n    const b = binary[key];\n    const label = photoLabels[key] || 'Foto';\n    if (b.mimeType && b.mimeType.indexOf('jpeg') === -1 && b.mimeType.indexOf('jpg') === -1) { skipped.push(label); continue; }\n    photos.push({ label, buffer: Buffer.from(b.data, 'base64') });\n  }\n  if (skipped.length) lines.push('(Nao incluidas no PDF - formato nao suportado: ' + skipped.join(', ') + ')');\n  const pdfBuffer = buildOperationPdf('Relatorio de Operacao - Flex Tanque', lines, photos);\n  out.push({ json: { ...j, pdfBase64: pdfBuffer.toString('base64') } });\n}\nreturn out;"
       }
     },
     {
-      "id": "b4fcab06-d02a-405d-97bf-703f7e0e54d9",
+      "id": "676073f1-1f04-4743-85d4-c2416d5df7bb",
       "name": "Montar lista de envio do PDF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -967,7 +967,7 @@
       }
     },
     {
-      "id": "ef4829c1-e156-4ab3-825a-003230058474",
+      "id": "773e6248-b967-484d-a7e4-d3725f383025",
       "name": "Enviar PDF por WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1003,7 +1003,7 @@
       }
     },
     {
-      "id": "9c5a1962-d360-450f-a333-033870e4d725",
+      "id": "37826775-4934-406b-90ae-a35d70662b79",
       "name": "Montar mensagem do grupo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1018,7 +1018,7 @@
       }
     },
     {
-      "id": "ebab939e-1c90-44db-a137-f70ba015b12b",
+      "id": "8cc00ff5-1ea5-43ed-83d8-0643acc17a05",
       "name": "Responder no grupo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1054,7 +1054,7 @@
       }
     },
     {
-      "id": "ddc1318f-cfd9-478f-96b5-c12c70685a51",
+      "id": "92dd285e-9e99-41b6-8979-92daf6621701",
       "name": "Montar SQL - progresso e conclusao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1069,7 +1069,7 @@
       }
     },
     {
-      "id": "e32ad201-41b6-408b-885a-b144bfd67225",
+      "id": "44371645-aa66-4e32-adf5-63863e4cb8fd",
       "name": "Atualizar progresso do booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -1090,7 +1090,7 @@
       }
     },
     {
-      "id": "4a792e76-6425-44e0-83eb-0e0b0cad7d0c",
+      "id": "8db3bb5b-4220-4a33-b293-0a4ea31c5087",
       "name": "Marcar lote como concluido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
