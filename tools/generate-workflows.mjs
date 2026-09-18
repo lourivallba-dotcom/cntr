@@ -767,6 +767,7 @@ const nMontarSqlAgregados = add(
       "const out = [];",
       "for (const item of items) {",
       "  const j = item.json;",
+      "  if (j.batch_id === undefined || j.batch_id === null) continue;",
       "  const sql = 'SELECT ' + j.batch_id + ' AS batch_id, ' + pgQuote(j.group_id) + ' AS group_id, ' + pgQuote(j.group_name) + ' AS group_name, ' + pgQuote(j.sender_id) + ' AS sender_id, ' + pgQuote(j.sender_name) + ' AS sender_name, ' +",
       "    \"string_agg(DISTINCT NULLIF(carrier_text,''), ' ') AS carrier_texts, string_agg(DISTINCT NULLIF(container_number_text,''), ' ') AS container_texts, string_agg(DISTINCT NULLIF(flex_tank_number_text,''), ' ') AS flex_texts, string_agg(DISTINCT NULLIF(flex_lot_no_text,''), ' ') AS lot_texts FROM batch_photos WHERE batch_id=\" + j.batch_id + ' GROUP BY 1,2,3,4,5';",
       "  out.push({ json: { sql } });",
