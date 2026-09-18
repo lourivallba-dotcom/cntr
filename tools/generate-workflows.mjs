@@ -674,9 +674,13 @@ const nCasarTexto = add(
       "for (const item of items) {",
       "  const candidates = item.json.candidate_bookings || [];",
       "  let match = null;",
-      "  const optionIdx = /^(\\d{1,2})[).]?$/.exec(rawText);",
-      "  if (optionIdx) { const i = Number(optionIdx[1]) - 1; if (i >= 0 && i < candidates.length) match = candidates[i]; }",
-      "  if (!match) match = candidates.find(function(b){ return textBody.includes(String(b).toUpperCase()); });",
+      "  if (candidates.length) {",
+      "    const optionIdx = /^(\\d{1,2})[).]?$/.exec(rawText);",
+      "    if (optionIdx) { const i = Number(optionIdx[1]) - 1; if (i >= 0 && i < candidates.length) match = candidates[i]; }",
+      "    if (!match) match = candidates.find(function(b){ return textBody.includes(String(b).toUpperCase()); });",
+      "  } else if (rawText) {",
+      "    match = rawText;",
+      "  }",
       "  if (match) out.push({ json: { batch_id: item.json.batch_id, matchedBooking: match } });",
       "}",
       "return out;",
@@ -849,14 +853,17 @@ link(nBuscarCandidatos, nDecidirBooking);
 const nGateResolvido = add(
   code(
     "Gate - Resolvido automaticamente",
-    ["const items = $input.all();", "return items.filter(function(i){ return i.json.matchStatus !== 'ambiguous'; });"],
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.matchStatus === 'auto'; });"],
     pos("p1", LANE_P1),
   ),
 );
 const nGateAmbiguo = add(
   code(
     "Gate - Ambiguo",
-    ["const items = $input.all();", "return items.filter(function(i){ return i.json.matchStatus === 'ambiguous'; });"],
+    [
+      "const items = $input.all();",
+      "return items.filter(function(i){ return i.json.matchStatus === 'ambiguous' || i.json.matchStatus === 'unmatched'; });",
+    ],
     pos("p1", LANE_P1 + 200),
   ),
 );
@@ -894,7 +901,10 @@ const nMontarSqlAguardando = add(
       "for (const item of items) {",
       "  const j = item.json;",
       "  const codes = j.candidateBookings.map(function(c){ return c.booking; });",
-      "  const lines = ['\\uD83D\\uDD00 *Varios bookings em aberto compativeis*', 'Responda com o *numero da opcao* (1, 2, 3...) desta montagem:', ''];",
+      "  const hasCandidates = j.candidateBookings.length > 0;",
+      "  const lines = hasCandidates",
+      "    ? ['\\uD83D\\uDD00 *Varios bookings em aberto compativeis*', 'Responda com o *numero da opcao* (1, 2, 3...) desta montagem:', '']",
+      "    : ['\\u2757 *Nao encontrei nenhum booking em aberto compativel com essa montagem*', 'Responda com o *numero do booking* correto pra confirmar:', ''];",
       "  j.candidateBookings.forEach(function(c, i) {",
       "    const pendentes = (Number(c.qty)||0) - (Number(c.assembled)||0);",
       "    lines.push('*' + (i + 1) + ')* \\uD83D\\uDCE6 *' + c.booking + '*');",
@@ -905,7 +915,8 @@ const nMontarSqlAguardando = add(
       "  });",
       "  if (lines[lines.length - 1] === '') lines.pop();",
       "  const messageText = lines.join('\\n');",
-      "  const sql = \"UPDATE photo_batches SET match_status='ambiguous', status='awaiting_booking_choice', candidate_bookings=\" + pgQuoteArray(codes) + ', updated_at=now() WHERE id=' + j.batch_id + ' RETURNING id AS batch_id, ' + pgQuote(j.group_id) + ' AS group_id, ' + pgQuote(messageText) + ' AS message_text';",
+      "  const matchStatus = hasCandidates ? 'ambiguous' : 'unmatched';",
+      "  const sql = 'UPDATE photo_batches SET match_status=' + pgQuote(matchStatus) + \", status='awaiting_booking_choice', candidate_bookings=\" + pgQuoteArray(codes) + ', updated_at=now() WHERE id=' + j.batch_id + ' RETURNING id AS batch_id, ' + pgQuote(j.group_id) + ' AS group_id, ' + pgQuote(messageText) + ' AS message_text';",
       "  out.push({ json: { sql } });",
       "}",
       "return out;",
