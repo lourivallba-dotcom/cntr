@@ -2,7 +2,7 @@
   "name": "Agente CTA - WhatsApp (Programacao + Flex Tanque)",
   "nodes": [
     {
-      "id": "2b58d60a-b005-44d5-905c-d65b194669b4",
+      "id": "e73748f1-2a5a-4eaa-bc76-eb804264c80b",
       "name": "Webhook Evolution",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -10,7 +10,7 @@
         280,
         0
       ],
-      "webhookId": "c18dc338-4d74-4c09-a49f-61e64f324d48",
+      "webhookId": "dd22a315-ff9c-46ce-b841-9a4244e167d8",
       "parameters": {
         "httpMethod": "POST",
         "path": "evolution-webhook",
@@ -20,7 +20,7 @@
       }
     },
     {
-      "id": "86a05269-3e77-480a-96ee-70dd61e749f9",
+      "id": "c0062dc5-1f1f-4d02-b1b8-9d590496cf6c",
       "name": "Normalizar mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "349e37c6-4b24-4224-b349-17126f2d9492",
+      "id": "8d69da4f-8257-4f03-9a89-91bd34180b86",
       "name": "Gate - Eh imagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -50,7 +50,7 @@
       }
     },
     {
-      "id": "6e49ab74-b2f6-4ba2-b218-c789682c4be3",
+      "id": "0e33008b-1e21-4fee-9676-7f98de7d95d1",
       "name": "Buscar midia base64",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -62,14 +62,17 @@
       "parameters": {
         "method": "POST",
         "url": "https://SEU-EVOLUTION-API.exemplo.com/chat/getBase64FromMediaMessage/nome-da-instancia",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "COLE-AQUI-A-APIKEY-DA-EVOLUTION-API"
             }
           ]
         },
@@ -77,16 +80,10 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ message: { key: { id: $json.messageId, remoteJid: $json.groupId, fromMe: false, participant: $json.senderId } } }) }}",
         "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "1",
-          "name": "Evolution API Key"
-        }
       }
     },
     {
-      "id": "8380faac-27ba-4584-a1fd-3d3d1e9007fb",
+      "id": "dc3db499-d943-4feb-93b7-bad70ce7fb20",
       "name": "Montar corpo da requisicao Vision",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -101,7 +98,7 @@
       }
     },
     {
-      "id": "a3e8bc94-8fa9-4ca4-80ae-fa578c16d6d7",
+      "id": "8c0db602-0c3c-4dc0-990d-c856f2bdffd6",
       "name": "Vision - Classificar imagem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -113,8 +110,7 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -125,6 +121,10 @@
             {
               "name": "anthropic-version",
               "value": "2023-06-01"
+            },
+            {
+              "name": "x-api-key",
+              "value": "COLE-AQUI-A-CHAVE-DA-ANTHROPIC-sk-ant-..."
             }
           ]
         },
@@ -132,16 +132,10 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json.anthropicBody }}",
         "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "2",
-          "name": "Anthropic API Key"
-        }
       }
     },
     {
-      "id": "13d8d6d3-b6f5-42e2-ad6f-130d0adf3f2e",
+      "id": "4b17148d-55c0-48fd-a8c2-90548b5cb2cf",
       "name": "Extrair analise da imagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -156,7 +150,7 @@
       }
     },
     {
-      "id": "a994ed05-f15a-4a95-8be6-c0f1992d30c8",
+      "id": "e28d53ab-9b91-49b0-afaa-0284530a8259",
       "name": "Preparar linhas da programacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -171,7 +165,7 @@
       }
     },
     {
-      "id": "6b73c4c8-7055-4cd4-9a77-aeebd0371483",
+      "id": "ff3647e7-3a35-4130-aec3-3be51bb97612",
       "name": "Upsert booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -192,7 +186,7 @@
       }
     },
     {
-      "id": "596180d8-04df-4d8e-ac28-d8324adf651f",
+      "id": "3e61a5c9-4cf3-49a0-88e0-5a6ce37bb5ef",
       "name": "Montar resumo da programacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -207,7 +201,7 @@
       }
     },
     {
-      "id": "2e0edc6b-320a-46fb-bd28-6764e8a34026",
+      "id": "a0538dfa-4b0b-488d-abc4-26e5b8332bb7",
       "name": "Responder confirmacao da programacao",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -219,14 +213,17 @@
       "parameters": {
         "method": "POST",
         "url": "https://SEU-EVOLUTION-API.exemplo.com/message/sendText/nome-da-instancia",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "COLE-AQUI-A-APIKEY-DA-EVOLUTION-API"
             }
           ]
         },
@@ -234,16 +231,10 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ number: $json.groupId, text: $json.text }) }}",
         "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "1",
-          "name": "Evolution API Key"
-        }
       }
     },
     {
-      "id": "36e97128-4331-4201-91eb-9900155c9711",
+      "id": "a0c0c436-03d0-4e5b-a54a-355ee7d767c0",
       "name": "Preparar foto de operacao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -258,7 +249,7 @@
       }
     },
     {
-      "id": "4bab1efd-b371-44b6-b88a-83d58eb65c89",
+      "id": "ca29461b-469f-420c-a51b-fe428c73aab0",
       "name": "Garantir lote aberto",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -279,7 +270,7 @@
       }
     },
     {
-      "id": "6eb77260-c232-4c6c-9e31-580425183e26",
+      "id": "e8e87e40-585a-42a7-bc66-1e55054383e3",
       "name": "Obter lote aberto",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -300,7 +291,7 @@
       }
     },
     {
-      "id": "4cc1271d-3bee-4ea3-8ef2-d5a73d6edaa8",
+      "id": "cad97f0a-5985-49c4-85a3-318528b566ca",
       "name": "Preparar insercao da foto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -315,7 +306,7 @@
       }
     },
     {
-      "id": "99682491-e33d-4343-95a9-f2332598ec0c",
+      "id": "4e017222-e03b-4470-a0ed-63cc771c1d5f",
       "name": "Salvar foto no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -336,7 +327,7 @@
       }
     },
     {
-      "id": "f394e766-862b-4537-ad5b-eec5b78f185f",
+      "id": "dfa3d750-a907-4328-a78d-f3b3c1af24df",
       "name": "Atualizar timestamp do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -357,7 +348,7 @@
       }
     },
     {
-      "id": "4068b269-ffba-47bf-acff-4a8d215499af",
+      "id": "d6ce174c-cef4-4c22-b959-f075239917d1",
       "name": "Contar fotos do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -378,7 +369,7 @@
       }
     },
     {
-      "id": "b1c9d5ba-8770-417a-b766-f342aca63289",
+      "id": "4c667173-3e94-4d01-8fa2-74931186eaa3",
       "name": "Gate - Lote completo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -393,7 +384,7 @@
       }
     },
     {
-      "id": "d57a37aa-5c4c-48eb-a122-f40aee383708",
+      "id": "b240b369-99dd-4d15-94dc-bc52e714fbc8",
       "name": "Gate - Eh texto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -408,7 +399,7 @@
       }
     },
     {
-      "id": "15da46df-afcb-4891-856f-f46954fc3c09",
+      "id": "51cdd7ba-5a6a-410c-acca-4c2a9e6d572e",
       "name": "Preparar busca de lote aguardando",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -423,7 +414,7 @@
       }
     },
     {
-      "id": "9aada766-a347-4840-a058-49a66456335e",
+      "id": "c96b05d5-04a1-4919-9788-3637dd294e38",
       "name": "Buscar lote aguardando escolha",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -444,7 +435,7 @@
       }
     },
     {
-      "id": "a573e3a8-bf4f-4b1c-b76b-2e23f70a8602",
+      "id": "8926e06a-6a95-412f-bda6-0e2bc396a661",
       "name": "Tentar casar texto com candidato",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -459,7 +450,7 @@
       }
     },
     {
-      "id": "09f6aef4-55c0-4c60-8593-a0e119157eef",
+      "id": "bc0fd393-1de9-44f1-8291-0ea5d475760c",
       "name": "Preparar busca do booking escolhido",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -474,7 +465,7 @@
       }
     },
     {
-      "id": "252c0d15-c4fb-48ea-b9d6-8bd148f20db0",
+      "id": "9dfcb539-1c64-4574-beee-94abf09cfb33",
       "name": "Buscar id do booking escolhido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -495,7 +486,7 @@
       }
     },
     {
-      "id": "70a46740-5c46-4fe1-a295-5075f4bcbaf0",
+      "id": "b34496b2-efcf-445f-a10c-2a495b526639",
       "name": "Preparar gravacao do booking resolvido",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -510,7 +501,7 @@
       }
     },
     {
-      "id": "b3c662ba-89be-4bd8-8289-d528214cfd92",
+      "id": "adcbc067-9d30-4abe-b362-f151f9f6861c",
       "name": "Gravar booking resolvido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -531,7 +522,7 @@
       }
     },
     {
-      "id": "e6d7a648-0c9d-4ca1-85db-09836a14864e",
+      "id": "c64c7238-c4c3-444c-858e-b5ad96faa807",
       "name": "Agendamento - Verificar Lotes Parados",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -551,7 +542,7 @@
       }
     },
     {
-      "id": "3b058a9a-10da-473a-a4db-1bba775c3d18",
+      "id": "3f0cf786-61b0-40c6-b232-32c75f21fc90",
       "name": "Buscar lotes parados",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -572,7 +563,7 @@
       }
     },
     {
-      "id": "61afaffc-bb86-4811-b447-df3ff57bf584",
+      "id": "27fde9e4-6ed9-489b-ba6a-b88ce21be069",
       "name": "Travar lote (processing)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -593,7 +584,7 @@
       }
     },
     {
-      "id": "6a362acf-d07b-44bb-8ee0-0cc6bfdf162a",
+      "id": "bdf53242-c24e-40b9-86c4-976a0961bb8c",
       "name": "Montar SQL - agregados das fotos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -608,7 +599,7 @@
       }
     },
     {
-      "id": "cf6c5bba-db14-4687-9c11-22801eb36254",
+      "id": "bd7fcead-6d6e-44cd-aee8-15ff8ce58f9d",
       "name": "Buscar agregados das fotos",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -629,7 +620,7 @@
       }
     },
     {
-      "id": "4ddb30c9-e752-4533-a875-e5ab000838c4",
+      "id": "aa8259ca-1860-4ff3-a7bf-bf7001843b1b",
       "name": "Escolher numeros e montar SQL de salvar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -644,7 +635,7 @@
       }
     },
     {
-      "id": "8f883523-af77-49b3-bf07-48f4f386a343",
+      "id": "ba3d9e66-7d44-455f-80e2-9ed1cdf94ef8",
       "name": "Salvar numeros no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -665,7 +656,7 @@
       }
     },
     {
-      "id": "c2d33ae0-66e3-48f8-b0d9-7a55e913f3ba",
+      "id": "809cf492-f400-4a81-b665-bde175b6a205",
       "name": "Montar SQL - candidatos de booking",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -680,7 +671,7 @@
       }
     },
     {
-      "id": "575b2ed3-fea2-475b-86b1-449cef89bc1a",
+      "id": "c54441cf-6aba-44d1-b068-12130213e85e",
       "name": "Buscar candidatos de booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -701,7 +692,7 @@
       }
     },
     {
-      "id": "cac17c70-b9d3-4d72-8c9a-f997e82d113c",
+      "id": "7eeaa580-4880-4285-81a5-0eff0af5b235",
       "name": "Decidir booking automatico",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -716,7 +707,7 @@
       }
     },
     {
-      "id": "3b9772a7-168f-4a43-9f94-8144d2198442",
+      "id": "f58e3aac-5f49-418f-92cb-c1533ec32b63",
       "name": "Gate - Resolvido automaticamente",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -731,7 +722,7 @@
       }
     },
     {
-      "id": "ad0b5995-62a5-4f82-aa5b-44e98935407f",
+      "id": "00c4b919-2124-43a7-8c03-38b74c2af0a4",
       "name": "Gate - Ambiguo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -746,7 +737,7 @@
       }
     },
     {
-      "id": "31d8c377-6645-46b1-9eed-253ff2997fb8",
+      "id": "8c8b93ed-dc5a-469a-9131-7de4a1bef2b8",
       "name": "Montar SQL - gravar booking no lote",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -761,7 +752,7 @@
       }
     },
     {
-      "id": "9e9ea57f-105d-4a26-a3f2-3ffafdb899a2",
+      "id": "b0a1866e-6060-49b5-a0c8-af9d4ec06929",
       "name": "Gravar booking no lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -782,7 +773,7 @@
       }
     },
     {
-      "id": "16fd5af6-979d-42f4-8a72-23c8d434ead7",
+      "id": "d34b4a42-b504-430a-90cc-0370a697d418",
       "name": "Montar SQL - aguardar escolha no grupo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -797,7 +788,7 @@
       }
     },
     {
-      "id": "855c7a08-90a3-4f69-9316-a55f4ef7ec8d",
+      "id": "ad79b32f-3f2d-4568-a268-9ee8c0183e67",
       "name": "Gravar status aguardando",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -818,7 +809,7 @@
       }
     },
     {
-      "id": "9aa33056-b13d-4f70-903d-f1dfdd31193a",
+      "id": "893e791a-e73b-4517-bee9-191ff08dbdee",
       "name": "Responder pedido de escolha no grupo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -830,14 +821,17 @@
       "parameters": {
         "method": "POST",
         "url": "https://SEU-EVOLUTION-API.exemplo.com/message/sendText/nome-da-instancia",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "COLE-AQUI-A-APIKEY-DA-EVOLUTION-API"
             }
           ]
         },
@@ -845,16 +839,10 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ number: $json.group_id, text: $json.message_text }) }}",
         "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "1",
-          "name": "Evolution API Key"
-        }
       }
     },
     {
-      "id": "bd82a9fc-ee5a-4dcb-a5c7-68587a409433",
+      "id": "076e1203-c95d-4e52-b529-6de868540fef",
       "name": "Buscar dados do lote e booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -875,7 +863,7 @@
       }
     },
     {
-      "id": "12b14a06-b24c-445a-8152-ba11c23bff9c",
+      "id": "b231f7f3-939a-43d0-bc6c-4718f67316c2",
       "name": "Buscar fotos do lote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -896,7 +884,7 @@
       }
     },
     {
-      "id": "2ad40458-b60f-433c-b2d7-b4be567ea551",
+      "id": "f13917b7-962a-4404-ae5a-0f0c6485c62b",
       "name": "Consolidar e preparar anexos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -911,7 +899,7 @@
       }
     },
     {
-      "id": "0d88b9eb-6806-4bc6-a51c-fc6e3bd86906",
+      "id": "6a6d1663-dfd6-427d-92f0-81d15429817d",
       "name": "Enviar e-mail com fotos",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -937,7 +925,7 @@
       }
     },
     {
-      "id": "e7fde32b-3e98-4e1a-a330-d32fe7fd6af6",
+      "id": "91937d2c-34e8-4390-89fe-4f7405c79b8f",
       "name": "Montar PDF do relatorio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -952,7 +940,7 @@
       }
     },
     {
-      "id": "53858016-87bf-4dba-b3c0-c0d04e806bf0",
+      "id": "d1fcdfb8-7385-45bd-9caf-5c7d29c49cbb",
       "name": "Montar lista de envio do PDF",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -967,7 +955,7 @@
       }
     },
     {
-      "id": "26f10a8c-95bb-4087-8bc7-24903fc57e32",
+      "id": "1a6cd0d5-b4b0-41f2-9266-08e0f8f982fa",
       "name": "Enviar PDF por WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -979,14 +967,17 @@
       "parameters": {
         "method": "POST",
         "url": "https://SEU-EVOLUTION-API.exemplo.com/message/sendMedia/nome-da-instancia",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "COLE-AQUI-A-APIKEY-DA-EVOLUTION-API"
             }
           ]
         },
@@ -994,16 +985,10 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ number: $json.phone, mediatype: 'document', mimetype: 'application/pdf', fileName: 'relatorio-' + ($json.containerNumber || 'operacao') + '.pdf', media: $json.pdfBase64, caption: 'Relatorio da operacao - Container ' + ($json.containerNumber || 'N/D') + ' / Flex ' + ($json.flexTankNumber || 'N/D') }) }}",
         "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "1",
-          "name": "Evolution API Key"
-        }
       }
     },
     {
-      "id": "b13e8e2c-f274-4ec2-964f-b369d530f69b",
+      "id": "4920bd9c-8f8e-483c-86b5-566a6a1f7d98",
       "name": "Montar mensagem do grupo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1014,11 +999,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const RESPONSIBLES = [{\"name\":\"Responsavel 1\",\"phone\":\"5511999999999\"},{\"name\":\"Responsavel 2\",\"phone\":\"5511888888888\"}];\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const lines = [];\n  lines.push('\\uD83D\\uDCE6 *Operacao registrada*');\n  lines.push('Container: *' + (j.containerNumber || 'NAO IDENTIFICADO') + '*');\n  lines.push('Flex tanque: *' + (j.flexTankNumber || 'NAO IDENTIFICADO') + '*' + (j.flexLotNo ? (' (Lot No: ' + j.flexLotNo + ')') : ''));\n  if (j.booking) {\n    lines.push('Booking: *' + j.booking + '* - Planta: ' + (j.loadingPlant || '-') + ' - Armador: ' + (j.carrier || '-'));\n    const assembledNow = (Number(j.qtyAssembled)||0) + 1;\n    lines.push('Progresso: ' + assembledNow + ' de ' + (j.qtyContainers || '?') + ' montados.');\n    if (j.notes) lines.push('Obs: ' + j.notes);\n  } else {\n    lines.push('Booking: NAO LOCALIZADO - favor confirmar manualmente.');\n  }\n  lines.push('');\n  lines.push('Fotos enviadas por e-mail para conferencia.');\n  if (RESPONSIBLES.length) { lines.push(''); lines.push(RESPONSIBLES.map(function(r){ return '@' + r.phone; }).join(' ')); }\n  out.push({ json: { groupId: j.groupId, text: lines.join('\\n'), mentioned: RESPONSIBLES.map(function(r){ return r.phone; }), matchedBookingId: j.matchedBookingId, batchId: j.batchId, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber } });\n}\nreturn out;"
+        "jsCode": "const RESPONSIBLES = [{\"name\":\"Responsavel 1\",\"phone\":\"5511999999999\"},{\"name\":\"Responsavel 2\",\"phone\":\"5511888888888\"}];\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json;\n  const lines = [];\n  lines.push('\\uD83D\\uDCE6 *Operacao registrada*');\n  lines.push('Container: *' + (j.containerNumber || 'NAO IDENTIFICADO') + '*');\n  lines.push('Flex tanque: *' + (j.flexTankNumber || 'NAO IDENTIFICADO') + '*' + (j.flexLotNo ? (' (Lot No: ' + j.flexLotNo + ')') : ''));\n  if (j.booking) {\n    lines.push('Booking: *' + j.booking + '* - Planta: ' + (j.loadingPlant || '-') + ' - Armador: ' + (j.carrier || '-'));\n    const assembledNow = (Number(j.qtyAssembled)||0) + 1;\n    lines.push('Progresso: ' + assembledNow + ' de ' + (j.qtyContainers || '?') + ' montados.');\n    if (j.notes) lines.push('Obs: ' + j.notes);\n  } else {\n    lines.push('Booking: NAO LOCALIZADO - favor confirmar manualmente.');\n  }\n  lines.push('');\n  lines.push('Fotos enviadas por e-mail para conferencia.');\n  if (RESPONSIBLES.length) { lines.push(''); lines.push(RESPONSIBLES.map(function(r){ return '@' + r.phone; }).join(' ')); }\n  const mentioned = RESPONSIBLES.map(function(r){ return r.phone; });\n  const bodyJson = JSON.stringify({ number: j.groupId, text: lines.join('\\n'), mentioned: mentioned });\n  out.push({ json: { groupId: j.groupId, text: lines.join('\\n'), mentioned: mentioned, bodyJson: bodyJson, matchedBookingId: j.matchedBookingId, batchId: j.batchId, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber } });\n}\nreturn out;"
       }
     },
     {
-      "id": "8600abe5-c324-476d-a18b-78619592149a",
+      "id": "b37dd635-97a2-43df-8fe8-0188c0ecd0ed",
       "name": "Responder no grupo",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1030,31 +1015,28 @@
       "parameters": {
         "method": "POST",
         "url": "https://SEU-EVOLUTION-API.exemplo.com/message/sendText/nome-da-instancia",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "COLE-AQUI-A-APIKEY-DA-EVOLUTION-API"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $json.groupId, text: $json.text, mentioned: $json.mentioned }) }}",
+        "jsonBody": "={{ $json.bodyJson }}",
         "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "1",
-          "name": "Evolution API Key"
-        }
       }
     },
     {
-      "id": "e55eda21-9ff5-4669-bd77-e7b861160ebd",
+      "id": "19d74835-2499-4e93-b272-2f52ca0c2cd0",
       "name": "Montar SQL - progresso e conclusao",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1069,7 +1051,7 @@
       }
     },
     {
-      "id": "69ca96c6-2c23-4684-86b3-a864cc526575",
+      "id": "302e22dc-8489-42e6-adf1-86b247275aea",
       "name": "Atualizar progresso do booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -1090,7 +1072,7 @@
       }
     },
     {
-      "id": "b2086135-8ab3-44bc-84b4-e3ac5d81ca11",
+      "id": "785f25a7-125b-44c6-b465-ff672e700578",
       "name": "Marcar lote como concluido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,

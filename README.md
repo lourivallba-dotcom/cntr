@@ -143,14 +143,22 @@ node tools/validate-workflow.mjs
 ### 4. Importar no n8n
 
 - No n8n: **Import from File** → selecione `workflows/agente-cta.json`.
-- Configure as credenciais que os nodes pedem (o n8n mostra um aviso "credencial não
-  configurada" em cada node que precisa):
-  - **Evolution API Key** (tipo *Header Auth*): Header Name `apikey`, valor = sua API key da
-    Evolution API.
-  - **Anthropic API Key** (tipo *Header Auth*): Header Name `x-api-key`, valor = sua chave da
-    Anthropic.
-  - **Postgres CTA** (tipo *Postgres*): dados de conexão do banco do passo 1.
-  - **SMTP CTA** (tipo *SMTP*): dados do seu servidor de e-mail.
+- Configure:
+  - **Postgres CTA** (credencial tipo *Postgres*): dados de conexão do banco do passo 1. Nos
+    nodes de banco de dados, selecione essa credencial.
+  - **SMTP CTA** (credencial tipo *SMTP*): dados do seu servidor de e-mail. No node de e-mail,
+    selecione essa credencial.
+  - **Evolution API e Anthropic**: de propósito, esses NÃO usam credencial compartilhada do
+    n8n (algumas instalações self-hosted "perdem" a referência da credencial quando um node é
+    duplicado ou o workflow é reimportado, o que já causou bastante dor de cabeça). A chave vai
+    direto como header manual em cada node HTTP. Em cada um dos nodes abaixo, abra a aba
+    **Headers** e edite o valor do header indicado:
+    - `Buscar midia base64`, `Vision - Classificar imagem` (esse também tem `x-api-key`),
+      `Responder confirmacao da programacao`, `Responder pedido de escolha no grupo`,
+      `Enviar PDF por WhatsApp`, `Responder no grupo` → header **`apikey`**: cole a API key da
+      sua Evolution API (valor de exemplo no JSON gerado: `COLE-AQUI-A-APIKEY-DA-EVOLUTION-API`).
+    - `Vision - Classificar imagem` → header **`x-api-key`**: cole sua chave da Anthropic
+      (`sk-ant-...`; valor de exemplo: `COLE-AQUI-A-CHAVE-DA-ANTHROPIC-sk-ant-...`).
 - Ative o workflow.
 - Copie a URL do node **Webhook Evolution** (Produção) e configure-a no webhook da Evolution
   API (passo 2).

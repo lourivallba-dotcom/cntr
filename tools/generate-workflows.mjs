@@ -17,11 +17,16 @@
  *                                    direta de texto nao confiavel)
  *   - n8n-nodes-base.emailSend
  *
- * Depois de importar no n8n, configure as credenciais (ver README):
- *   - "Evolution API Key"  (Header Auth, header "apikey")
- *   - "Anthropic API Key"  (Header Auth, header "x-api-key")
- *   - "Postgres CTA"       (Postgres)
- *   - "SMTP CTA"           (SMTP)
+ * Depois de importar no n8n, configure:
+ *   - Postgres: credencial "Postgres CTA" (Postgres) nos nodes de banco.
+ *   - SMTP: credencial "SMTP CTA" (SMTP) no node de e-mail.
+ *   - Evolution API e Anthropic: NAO usam credencial compartilhada do n8n
+ *     (evita o node "perder" a credencial ao ser duplicado/reimportado em
+ *     instalacoes self-hosted). A chave vai direto num header manual em
+ *     cada node HTTP - procure por EVOLUTION_APIKEY_PLACEHOLDER (header
+ *     "apikey") e ANTHROPIC_APIKEY_PLACEHOLDER (header "x-api-key") no
+ *     JSON gerado, ou edite cada node no n8n e cole a chave real no header
+ *     correspondente (ver README).
  */
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -246,7 +251,7 @@ function pg(name, queryExpr, position) {
   };
 }
 
-function httpNode(name, { method, url, jsonBodyExpr, credName, credId, notes, extraHeaders }, position) {
+function httpNode(name, { method, url, jsonBodyExpr, notes, extraHeaders }, position) {
   return {
     id: randomUUID(),
     name,
@@ -257,8 +262,7 @@ function httpNode(name, { method, url, jsonBodyExpr, credName, credId, notes, ex
     parameters: {
       method,
       url,
-      authentication: "genericCredentialType",
-      genericAuthType: "httpHeaderAuth",
+      authentication: "none",
       sendHeaders: true,
       headerParameters: {
         parameters: [{ name: "Content-Type", value: "application/json" }, ...(extraHeaders || [])],
@@ -268,7 +272,6 @@ function httpNode(name, { method, url, jsonBodyExpr, credName, credId, notes, ex
       jsonBody: jsonBodyExpr,
       options: {},
     },
-    credentials: { httpHeaderAuth: { id: credId, name: credName } },
   };
 }
 
@@ -345,6 +348,15 @@ const EVOLUTION_INSTANCE = cfg.evolution.instance;
 const SEND_TEXT_URL = `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`;
 const GET_BASE64_URL = `${EVOLUTION_URL}/chat/getBase64FromMediaMessage/${EVOLUTION_INSTANCE}`;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+
+// As chaves ficam direto no header de cada node HTTP (sem passar por
+// credencial compartilhada do n8n) - depois de importar, edite CADA um dos
+// headers abaixo (procure por esse texto no editor) e cole a chave real.
+// Isso evita depender do sistema de credenciais do n8n, que em alguns
+// self-hosted perde a referencia da credencial quando um node e duplicado
+// ou o workflow e reimportado.
+const EVOLUTION_APIKEY_PLACEHOLDER = "COLE-AQUI-A-APIKEY-DA-EVOLUTION-API";
+const ANTHROPIC_APIKEY_PLACEHOLDER = "COLE-AQUI-A-CHAVE-DA-ANTHROPIC-sk-ant-...";
 
 // A montagem do corpo da requisicao para a Anthropic fica num Code node (JS
 // de verdade), nao numa expressao "={{ }}" do HTTP Request node - o motor de
@@ -430,8 +442,7 @@ const nBuscarBase64 = add(
       url: GET_BASE64_URL,
       jsonBodyExpr:
         "={{ JSON.stringify({ message: { key: { id: $json.messageId, remoteJid: $json.groupId, fromMe: false, participant: $json.senderId } } }) }}",
-      credName: "Evolution API Key",
-      credId: "1",
+      extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
       notes: "Ajuste o path conforme a versao da sua Evolution API - veja README.",
     },
     pos("t1", LANE_T1),
@@ -449,9 +460,10 @@ const nVision = add(
       method: "POST",
       url: ANTHROPIC_URL,
       jsonBodyExpr: "={{ $json.anthropicBody }}",
-      credName: "Anthropic API Key",
-      credId: "2",
-      extraHeaders: [{ name: "anthropic-version", value: "2023-06-01" }],
+      extraHeaders: [
+        { name: "anthropic-version", value: "2023-06-01" },
+        { name: "x-api-key", value: ANTHROPIC_APIKEY_PLACEHOLDER },
+      ],
     },
     pos("t1", LANE_T1),
   ),
@@ -550,8 +562,7 @@ const nResponderProgramacao = add(
       method: "POST",
       url: SEND_TEXT_URL,
       jsonBodyExpr: "={{ JSON.stringify({ number: $json.groupId, text: $json.text }) }}",
-      credName: "Evolution API Key",
-      credId: "1",
+      extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
     },
     pos("prog", LANE_PROG),
   ),
@@ -934,8 +945,7 @@ const nResponderPedidoEscolha = add(
       method: "POST",
       url: SEND_TEXT_URL,
       jsonBodyExpr: "={{ JSON.stringify({ number: $json.group_id, text: $json.message_text }) }}",
-      credName: "Evolution API Key",
-      credId: "1",
+      extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
     },
     pos("p1", LANE_P1 + 200),
   ),
@@ -1074,8 +1084,7 @@ const nEnviarPdf = add(
       url: `${EVOLUTION_URL}/message/sendMedia/${EVOLUTION_INSTANCE}`,
       jsonBodyExpr:
         "={{ JSON.stringify({ number: $json.phone, mediatype: 'document', mimetype: 'application/pdf', fileName: 'relatorio-' + ($json.containerNumber || 'operacao') + '.pdf', media: $json.pdfBase64, caption: 'Relatorio da operacao - Container ' + ($json.containerNumber || 'N/D') + ' / Flex ' + ($json.flexTankNumber || 'N/D') }) }}",
-      credName: "Evolution API Key",
-      credId: "1",
+      extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
       notes: "Endpoint/campos de envio de midia variam entre versoes da Evolution API - confira no /docs da sua instancia.",
     },
     pos("p2", LANE_P2),
@@ -1107,7 +1116,9 @@ const nMontarMensagemGrupo = add(
       "  lines.push('');",
       "  lines.push('Fotos enviadas por e-mail para conferencia.');",
       "  if (RESPONSIBLES.length) { lines.push(''); lines.push(RESPONSIBLES.map(function(r){ return '@' + r.phone; }).join(' ')); }",
-      "  out.push({ json: { groupId: j.groupId, text: lines.join('\\n'), mentioned: RESPONSIBLES.map(function(r){ return r.phone; }), matchedBookingId: j.matchedBookingId, batchId: j.batchId, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber } });",
+      "  const mentioned = RESPONSIBLES.map(function(r){ return r.phone; });",
+      "  const bodyJson = JSON.stringify({ number: j.groupId, text: lines.join('\\n'), mentioned: mentioned });",
+      "  out.push({ json: { groupId: j.groupId, text: lines.join('\\n'), mentioned: mentioned, bodyJson: bodyJson, matchedBookingId: j.matchedBookingId, batchId: j.batchId, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber } });",
       "}",
       "return out;",
     ],
@@ -1122,9 +1133,8 @@ const nResponderGrupo = add(
     {
       method: "POST",
       url: SEND_TEXT_URL,
-      jsonBodyExpr: "={{ JSON.stringify({ number: $json.groupId, text: $json.text, mentioned: $json.mentioned }) }}",
-      credName: "Evolution API Key",
-      credId: "1",
+      jsonBodyExpr: "={{ $json.bodyJson }}",
+      extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
     },
     pos("p2", LANE_P2),
   ),
