@@ -1066,7 +1066,7 @@ const nExpandirDestinatariosPdf = add(
       "for (const item of items) {",
       "  const j = item.json;",
       "  for (const phone of PDF_RECIPIENTS) {",
-      "    out.push({ json: { phone, pdfBase64: j.pdfBase64, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber } });",
+      "    out.push({ json: { phone, pdfBase64: j.pdfBase64, containerNumber: j.containerNumber, flexTankNumber: j.flexTankNumber, booking: j.booking, loadingPlant: j.loadingPlant } });",
       "  }",
       "}",
       "return out;",
@@ -1083,7 +1083,7 @@ const nEnviarPdf = add(
       method: "POST",
       url: `${EVOLUTION_URL}/message/sendMedia/${EVOLUTION_INSTANCE}`,
       jsonBodyExpr:
-        "={{ JSON.stringify({ number: $json.phone, mediatype: 'document', mimetype: 'application/pdf', fileName: 'relatorio-' + ($json.containerNumber || 'operacao') + '.pdf', media: $json.pdfBase64, caption: 'Relatorio da operacao - Container ' + ($json.containerNumber || 'N/D') + ' / Flex ' + ($json.flexTankNumber || 'N/D') }) }}",
+        "={{ JSON.stringify({ number: $json.phone, mediatype: 'document', mimetype: 'application/pdf', fileName: ('relatorio-' + ($json.containerNumber || 'operacao') + '-' + ($json.booking || 'booking') + '-' + (($json.loadingPlant || 'cliente').split('(')[0].trim().replace(/\\s+/g,'-')) + '.pdf'), media: $json.pdfBase64, caption: 'Relatorio da operacao - Container ' + ($json.containerNumber || 'N/D') + ' / Flex ' + ($json.flexTankNumber || 'N/D') }) }}",
       extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
       notes: "Endpoint/campos de envio de midia variam entre versoes da Evolution API - confira no /docs da sua instancia.",
     },
