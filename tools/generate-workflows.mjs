@@ -663,7 +663,7 @@ const nPrepararBuscaAguardando = add(
     [
       HELPER_PRELUDE,
       "const j = $input.first().json;",
-      "const sql = 'SELECT id AS batch_id, group_id, group_name, sender_id, sender_name, candidate_bookings FROM photo_batches WHERE group_id=' + pgQuote(j.groupId) + \" AND status='awaiting_booking_choice' ORDER BY updated_at DESC LIMIT 1\";",
+      "const sql = 'SELECT id AS batch_id, group_id, group_name, sender_id, sender_name, candidate_bookings, status FROM photo_batches WHERE group_id=' + pgQuote(j.groupId) + \" AND status IN ('awaiting_booking_choice','awaiting_confirmation','awaiting_correction') ORDER BY updated_at DESC LIMIT 1\";",
       "return [{ json: { sql, textBody: j.textBody } }];",
     ],
     pos("txt", LANE_TXT),
@@ -673,6 +673,169 @@ link(nGateTexto, nPrepararBuscaAguardando);
 
 const nBuscarLoteAguardando = add(pg("Buscar lote aguardando escolha", "={{ $json.sql }}", pos("txt", LANE_TXT)));
 link(nPrepararBuscaAguardando, nBuscarLoteAguardando);
+
+const nGateStatusEscolha = add(
+  code(
+    "Gate - Aguardando escolha de booking",
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.status === 'awaiting_booking_choice'; });"],
+    pos("txt", LANE_TXT),
+  ),
+);
+link(nBuscarLoteAguardando, nGateStatusEscolha);
+
+const nGateStatusConfirmacao = add(
+  code(
+    "Gate - Aguardando confirmacao",
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.status === 'awaiting_confirmation'; });"],
+    pos("txt", LANE_TXT + 350),
+  ),
+);
+link(nBuscarLoteAguardando, nGateStatusConfirmacao);
+
+const nGateStatusCorrecao = add(
+  code(
+    "Gate - Aguardando correcao",
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.status === 'awaiting_correction'; });"],
+    pos("txt", LANE_TXT + 550),
+  ),
+);
+link(nBuscarLoteAguardando, nGateStatusCorrecao);
+
+const nDecidirConfirmacao = add(
+  code(
+    "Decidir resposta de confirmacao",
+    [
+      "const rawText = ($('Preparar busca de lote aguardando').first().json.textBody || '').trim();",
+      "const items = $input.all();",
+      "const out = [];",
+      "for (const item of items) {",
+      "  const j = item.json;",
+      "  if (rawText === '1') out.push({ json: { batch_id: j.batch_id, action: 'confirm' } });",
+      "  else if (rawText === '2') out.push({ json: { batch_id: j.batch_id, action: 'ask_correction' } });",
+      "}",
+      "return out;",
+    ],
+    pos("txt", LANE_TXT + 350),
+  ),
+);
+link(nGateStatusConfirmacao, nDecidirConfirmacao);
+
+const nGateConfirmado = add(
+  code(
+    "Gate - Confirmado (sim)",
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.action === 'confirm'; });"],
+    pos("txt", LANE_TXT + 350),
+  ),
+);
+link(nDecidirConfirmacao, nGateConfirmado);
+
+const nGatePedirCorrecao = add(
+  code(
+    "Gate - Pedir correcao (nao)",
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.action === 'ask_correction'; });"],
+    pos("txt", LANE_TXT + 450),
+  ),
+);
+link(nDecidirConfirmacao, nGatePedirCorrecao);
+
+const nMontarSqlConfirmar = add(
+  code(
+    "Montar SQL - confirmar lote",
+    [
+      HELPER_PRELUDE,
+      "const items = $input.all();",
+      "const out = [];",
+      "for (const item of items) {",
+      "  const j = item.json;",
+      "  const sql = \"UPDATE photo_batches SET status='processing', updated_at=now() WHERE id=\" + j.batch_id + \" RETURNING id AS batch_id\";",
+      "  out.push({ json: { sql } });",
+      "}",
+      "return out;",
+    ],
+    pos("txt", LANE_TXT + 350),
+  ),
+);
+link(nGateConfirmado, nMontarSqlConfirmar);
+const nGravarConfirmado = add(pg("Gravar lote confirmado", "={{ $json.sql }}", pos("txt", LANE_TXT + 350)));
+link(nMontarSqlConfirmar, nGravarConfirmado);
+
+const nMontarSqlPedirCorrecao = add(
+  code(
+    "Montar SQL - pedir correcao",
+    [
+      HELPER_PRELUDE,
+      "const items = $input.all();",
+      "const out = [];",
+      "for (const item of items) {",
+      "  const j = item.json;",
+      "  const messageText = '\\u270F\\uFE0F *Qual informacao esta errada?*\\nResponda no formato:\\n*container <numero correto>*\\nou\\n*flex <numero correto>*\\n\\nExemplo: container UETU3261932';",
+      "  const sql = \"UPDATE photo_batches SET status='awaiting_correction', updated_at=now() WHERE id=\" + j.batch_id + ' RETURNING id AS batch_id, group_id, ' + pgQuote(messageText) + ' AS message_text';",
+      "  out.push({ json: { sql } });",
+      "}",
+      "return out;",
+    ],
+    pos("txt", LANE_TXT + 450),
+  ),
+);
+link(nGatePedirCorrecao, nMontarSqlPedirCorrecao);
+const nGravarPedirCorrecao = add(pg("Gravar pedido de correcao", "={{ $json.sql }}", pos("txt", LANE_TXT + 450)));
+link(nMontarSqlPedirCorrecao, nGravarPedirCorrecao);
+
+const nResponderPedidoCorrecao = add(
+  httpNode(
+    "Responder pedido de correcao",
+    {
+      method: "POST",
+      url: SEND_TEXT_URL,
+      jsonBodyExpr: "={{ JSON.stringify({ number: $json.group_id, text: $json.message_text }) }}",
+      extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
+    },
+    pos("txt", LANE_TXT + 450),
+  ),
+);
+link(nGravarPedirCorrecao, nResponderPedidoCorrecao);
+
+const nAplicarCorrecao = add(
+  code(
+    "Aplicar correcao",
+    [
+      "const rawText = ($('Preparar busca de lote aguardando').first().json.textBody || '').trim();",
+      "const m = /^(container|flex)\\s+(.+)$/i.exec(rawText);",
+      "const items = $input.all();",
+      "const out = [];",
+      "if (!m) return out;",
+      "const field = m[1].toLowerCase() === 'container' ? 'container_number' : 'flex_tank_number';",
+      "const value = m[2].trim().toUpperCase();",
+      "for (const item of items) {",
+      "  out.push({ json: { batch_id: item.json.batch_id, field, value } });",
+      "}",
+      "return out;",
+    ],
+    pos("txt", LANE_TXT + 550),
+  ),
+);
+link(nGateStatusCorrecao, nAplicarCorrecao);
+
+const nMontarSqlAplicarCorrecao = add(
+  code(
+    "Montar SQL - aplicar correcao",
+    [
+      HELPER_PRELUDE,
+      "const items = $input.all();",
+      "const out = [];",
+      "for (const item of items) {",
+      "  const j = item.json;",
+      "  const sql = 'UPDATE photo_batches SET ' + j.field + '=' + pgQuote(j.value) + \", status='processing', updated_at=now() WHERE id=\" + j.batch_id + ' RETURNING id AS batch_id';",
+      "  out.push({ json: { sql } });",
+      "}",
+      "return out;",
+    ],
+    pos("txt", LANE_TXT + 550),
+  ),
+);
+link(nAplicarCorrecao, nMontarSqlAplicarCorrecao);
+const nGravarCorrecaoAplicada = add(pg("Gravar correcao aplicada", "={{ $json.sql }}", pos("txt", LANE_TXT + 550)));
+link(nMontarSqlAplicarCorrecao, nGravarCorrecaoAplicada);
 
 const nCasarTexto = add(
   code(
@@ -699,7 +862,7 @@ const nCasarTexto = add(
     pos("txt", LANE_TXT),
   ),
 );
-link(nBuscarLoteAguardando, nCasarTexto);
+link(nGateStatusEscolha, nCasarTexto);
 
 const nPrepararBuscaBookingId = add(
   code(
@@ -725,7 +888,7 @@ const nPrepararGravarResolvido = add(
       HELPER_PRELUDE,
       "const bookingRow = $input.first().json;",
       "const ctx = $('Tentar casar texto com candidato').first().json;",
-      "const sql = 'UPDATE photo_batches SET matched_booking_id=' + bookingRow.booking_id + \", match_status='resolved', status='processing', updated_at=now() WHERE id=\" + ctx.batch_id + ' RETURNING id AS batch_id';",
+      "const sql = 'UPDATE photo_batches SET matched_booking_id=' + bookingRow.booking_id + \", match_status='resolved', status='needs_confirmation', updated_at=now() WHERE id=\" + ctx.batch_id + ' RETURNING id AS batch_id';",
       "return [{ json: { sql } }];",
     ],
     pos("txt", LANE_TXT),
@@ -891,7 +1054,7 @@ const nMontarSqlGravarBooking = add(
       "const out = [];",
       "for (const item of items) {",
       "  const j = item.json;",
-      "  const sql = 'UPDATE photo_batches SET matched_booking_id=' + (j.matchedBookingId || 'NULL') + ', match_status=' + pgQuote(j.matchStatus) + ', updated_at=now() WHERE id=' + j.batch_id + ' RETURNING id AS batch_id';",
+      "  const sql = 'UPDATE photo_batches SET matched_booking_id=' + (j.matchedBookingId || 'NULL') + ', match_status=' + pgQuote(j.matchStatus) + \", status='needs_confirmation', updated_at=now() WHERE id=\" + j.batch_id + ' RETURNING id AS batch_id';",
       "  out.push({ json: { sql } });",
       "}",
       "return out;",
@@ -958,12 +1121,14 @@ const LANE_P2 = 1900;
 const nBuscarDadosLote = add(
   pg(
     "Buscar dados do lote e booking",
-    "={{ \"SELECT pb.id AS batch_id, pb.group_id, pb.group_name, pb.sender_id, pb.sender_name, pb.container_number, pb.flex_tank_number, pb.flex_lot_no, pb.matched_booking_id, b.booking, b.loading_plant, b.carrier, b.notes, b.qty_containers, b.qty_assembled FROM photo_batches pb LEFT JOIN bookings b ON b.id = pb.matched_booking_id WHERE pb.id = \" + $json.batch_id }}",
+    "={{ \"SELECT pb.id AS batch_id, pb.status, pb.group_id, pb.group_name, pb.sender_id, pb.sender_name, pb.container_number, pb.flex_tank_number, pb.flex_lot_no, pb.matched_booking_id, b.booking, b.loading_plant, b.carrier, b.notes, b.qty_containers, b.qty_assembled FROM photo_batches pb LEFT JOIN bookings b ON b.id = pb.matched_booking_id WHERE pb.id = \" + $json.batch_id }}",
     pos("p2", LANE_P2),
   ),
 );
 link(nGravarBooking, nBuscarDadosLote);
 link(nGravarResolvido, nBuscarDadosLote);
+link(nGravarConfirmado, nBuscarDadosLote);
+link(nGravarCorrecaoAplicada, nBuscarDadosLote);
 
 const nBuscarFotosLote = add(
   pg(
@@ -1000,7 +1165,7 @@ const nConsolidar = add(
       "    batchId, groupId: batch.group_id, groupName: batch.group_name, senderName: batch.sender_name,",
       "    containerNumber: batch.container_number, flexTankNumber: batch.flex_tank_number, flexLotNo: batch.flex_lot_no,",
       "    matchedBookingId: batch.matched_booking_id, booking: batch.booking, loadingPlant: batch.loading_plant, carrier: batch.carrier, notes: batch.notes,",
-      "    qtyContainers: batch.qty_containers, qtyAssembled: batch.qty_assembled, photoLabels,",
+      "    qtyContainers: batch.qty_containers, qtyAssembled: batch.qty_assembled, photoLabels, status: batch.status,",
       "  }, binary });",
       "}",
       "return out;",
@@ -1010,8 +1175,70 @@ const nConsolidar = add(
 );
 link(nBuscarFotosLote, nConsolidar);
 
+const nGatePrecisaConfirmar = add(
+  code(
+    "Gate - Precisa confirmar leitura",
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.status === 'needs_confirmation'; });"],
+    pos("p2", LANE_P2 - 150),
+  ),
+);
+link(nConsolidar, nGatePrecisaConfirmar);
+
+const nGateJaConfirmado = add(
+  code(
+    "Gate - Ja confirmado (finalizar)",
+    ["const items = $input.all();", "return items.filter(function(i){ return i.json.status !== 'needs_confirmation'; });"],
+    pos("p2", LANE_P2),
+  ),
+);
+link(nConsolidar, nGateJaConfirmado);
+
+const nMontarConfirmacao = add(
+  code(
+    "Montar mensagem de confirmacao",
+    [
+      HELPER_PRELUDE,
+      "const items = $input.all();",
+      "const out = [];",
+      "for (const item of items) {",
+      "  const j = item.json;",
+      "  const lines = [];",
+      "  lines.push('\\uD83D\\uDD0E *Confirme as informacoes lidas*');",
+      "  lines.push('Container: *' + (j.containerNumber || 'NAO IDENTIFICADO') + '*');",
+      "  lines.push('Flex tanque: *' + (j.flexTankNumber || 'NAO IDENTIFICADO') + '*' + (j.flexLotNo ? (' (Lot No: ' + j.flexLotNo + ')') : ''));",
+      "  if (j.booking) lines.push('Booking: *' + j.booking + '*');",
+      "  lines.push('');",
+      "  lines.push('Esta correto?');",
+      "  lines.push('1) \\u2705 Sim, gerar o relatorio');",
+      "  lines.push('2) \\u274C Nao, tem erro');",
+      "  const messageText = lines.join('\\n');",
+      "  const sql = \"UPDATE photo_batches SET status='awaiting_confirmation', updated_at=now() WHERE id=\" + j.batchId + ' RETURNING id AS batch_id, group_id, ' + pgQuote(messageText) + ' AS message_text';",
+      "  out.push({ json: { sql } });",
+      "}",
+      "return out;",
+    ],
+    pos("p2", LANE_P2 - 150),
+  ),
+);
+link(nGatePrecisaConfirmar, nMontarConfirmacao);
+const nGravarAwaitingConfirmacao = add(pg("Gravar aguardando confirmacao", "={{ $json.sql }}", pos("p2", LANE_P2 - 150)));
+link(nMontarConfirmacao, nGravarAwaitingConfirmacao);
+const nResponderConfirmacao = add(
+  httpNode(
+    "Responder pedido de confirmacao",
+    {
+      method: "POST",
+      url: SEND_TEXT_URL,
+      jsonBodyExpr: "={{ JSON.stringify({ number: $json.group_id, text: $json.message_text }) }}",
+      extraHeaders: [{ name: "apikey", value: EVOLUTION_APIKEY_PLACEHOLDER }],
+    },
+    pos("p2", LANE_P2 - 150),
+  ),
+);
+link(nGravarAwaitingConfirmacao, nResponderConfirmacao);
+
 const nEmail = add(emailNode("Enviar e-mail com fotos", pos("p2", LANE_P2)));
-link(nConsolidar, nEmail);
+link(nGateJaConfirmado, nEmail);
 
 // --- PDF-resumo enviado por WhatsApp para numeros parametrizados -----------
 const nMontarPdf = add(
@@ -1055,7 +1282,7 @@ const nMontarPdf = add(
     pos("p2", LANE_P2),
   ),
 );
-link(nConsolidar, nMontarPdf);
+link(nGateJaConfirmado, nMontarPdf);
 
 const nExpandirDestinatariosPdf = add(
   code(
@@ -1128,7 +1355,7 @@ const nMontarMensagemGrupo = add(
     pos("p2", LANE_P2),
   ),
 );
-link(nConsolidar, nMontarMensagemGrupo);
+link(nGateJaConfirmado, nMontarMensagemGrupo);
 
 const nResponderGrupo = add(
   httpNode(
