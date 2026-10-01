@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Painel - Agente CTA</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --border: #e2e4e9;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171c;
+      --card: #1e2128;
+      --text: #e6e7eb;
+      --muted: #9aa0ab;
+      --border: #30343d;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --danger: #f87171;
+      --danger-bg: #2a1616;
+      --success: #4ade80;
+      --success-bg: #0f2417;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 16px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding-bottom: 80px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 4px; }
+  .card .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; line-height: 1.4; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  input[type="text"], input[type="number"], input[type="email"] {
+    width: 100%;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+  .list-item { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 8px; }
+  .list-item.two { grid-template-columns: 1fr 1fr auto; }
+  button {
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    padding: 8px 12px;
+  }
+  button:hover { border-color: var(--accent); }
+  .btn-remove { color: var(--danger); border-color: transparent; background: transparent; padding: 8px; }
+  .btn-add { font-size: 12.5px; margin-top: 4px; }
+  .btn-primary {
+    background: var(--accent); color: white; border: none; font-weight: 600;
+    padding: 11px 18px; font-size: 14px;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: .55; cursor: default; }
+  .actions {
+    position: sticky; bottom: 0; background: var(--bg);
+    padding: 14px 0 4px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    border-top: 1px solid var(--border); margin-top: 8px;
+  }
+  .msg { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin: 10px 0; display: none; white-space: pre-wrap; }
+  .msg.show { display: block; }
+  .msg.error { background: var(--danger-bg); color: var(--danger); }
+  .msg.success { background: var(--success-bg); color: var(--success); }
+  .muted-small { color: var(--muted); font-size: 11.5px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Painel do Agente CTA</h1>
+    <p class="sub">Edita <code>tools/config.json</code> e gera <code>workflows/agente-cta.json</code> - sem precisar mexer no JSON na mão. Rode <code>node tools/generate-workflows.mjs</code> aqui pelo botão abaixo depois de salvar.</p>
+
+    <div id="msg" class="msg"></div>
+
+    <div class="card">
+      <h2>Evolution API</h2>
+      <p class="hint">URL base e instância da sua Evolution API. A API key fica dentro do n8n (header de cada node), não aqui.</p>
+      <div class="row2">
+        <div>
+          <label>URL base</label>
+          <input type="text" id="ev-baseUrl" placeholder="https://evolution.seudominio.com" />
+        </div>
+        <div>
+          <label>Instância</label>
+          <input type="text" id="ev-instance" placeholder="cta-agente" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Grupos do WhatsApp monitorados</h2>
+      <p class="hint">IDs dos grupos permitidos (formato <code>1203630...@g.us</code>). Deixe vazio para aceitar qualquer grupo.</p>
+      <div id="groupIds-list"></div>
+      <button type="button" class="btn-add" onclick="addListItem('groupIds-list', '')">+ Adicionar grupo</button>
+    </div>
+
+    <div class="card">
+      <h2>Lote de fotos</h2>
+      <p class="hint">Regras de quando um lote de fotos é considerado completo e fecha sozinho.</p>
+      <div class="row2">
+        <div>
+          <label>Mínimo de fotos (fecha com esse número ou mais)</label>
+          <input type="number" id="batch-expectedPhotos" min="1" />
+        </div>
+        <div>
+          <label>Janela de inatividade (segundos)</label>
+          <input type="number" id="batch-windowSeconds" min="1" />
+        </div>
+      </div>
+      <label>Intervalo da verificação automática de lotes parados (minutos)</label>
+      <input type="number" id="batch-sweepIntervalMinutes" min="1" style="max-width:200px" />
+    </div>
+
+    <div class="card">
+      <h2>Anthropic</h2>
+      <p class="hint">Modelo usado pelo Claude Vision para ler as fotos. A chave da API fica no header do node "Vision - Classificar imagem" dentro do n8n.</p>
+      <label>Modelo</label>
+      <input type="text" id="anthropic-model" placeholder="claude-sonnet-5" />
+    </div>
+
+    <div class="card">
+      <h2>E-mail</h2>
+      <div class="row2">
+        <div>
+          <label>Remetente (nome &lt;email&gt;)</label>
+          <input type="text" id="email-from" placeholder="Agente CTA &lt;agente@example.com&gt;" />
+        </div>
+        <div></div>
+      </div>
+      <label>Destinatários (Para)</label>
+      <div id="email-to-list"></div>
+      <button type="button" class="btn-add" onclick="addListItem('email-to-list', '')">+ Adicionar destinatário</button>
+      <label style="margin-top:14px">Cópia (CC)</label>
+      <div id="email-cc-list"></div>
+      <button type="button" class="btn-add" onclick="addListItem('email-cc-list', '')">+ Adicionar em cópia</button>
+    </div>
+
+    <div class="card">
+      <h2>Responsáveis (marcados no grupo)</h2>
+      <p class="hint">Nome e telefone (DDI+DDD+número, só dígitos) de quem é marcado (@) nas mensagens do grupo.</p>
+      <div id="responsibles-list"></div>
+      <button type="button" class="btn-add" onclick="addResponsible('', '')">+ Adicionar responsável</button>
+    </div>
+
+    <div class="card">
+      <h2>Destinatários do PDF por WhatsApp</h2>
+      <p class="hint">Números (DDI+DDD+número, só dígitos) que recebem o PDF-resumo de cada operação concluída como documento no WhatsApp.</p>
+      <div id="pdfRecipients-list"></div>
+      <button type="button" class="btn-add" onclick="addListItem('pdfRecipients-list', '')">+ Adicionar número</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="btn-save" onclick="save()">Salvar configuração</button>
+      <button id="btn-generate" onclick="generate()">Gerar workflow</button>
+      <button id="btn-download" onclick="download()">Baixar agente-cta.json</button>
+      <span class="muted-small" id="status-text"></span>
+    </div>
+  </div>
+
+<script>
+function el(tag, attrs, children) {
+  const e = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    if (k === "class") e.className = attrs[k];
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  for (const c of (children || [])) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  return e;
+}
+
+function addListItem(containerId, value) {
+  const container = document.getElementById(containerId);
+  const row = el("div", { class: "list-item" });
+  const input = el("input", { type: "text", value });
+  const removeBtn = el("button", { type: "button", class: "btn-remove", onclick: () => row.remove() }, ["✕"]);
+  row.appendChild(input);
+  row.appendChild(removeBtn);
+  container.appendChild(row);
+  return input;
+}
+
+function getListValues(containerId) {
+  return Array.from(document.querySelectorAll("#" + containerId + " .list-item input"))
+    .map((i) => i.value.trim())
+    .filter((v) => v.length);
+}
+
+function addResponsible(name, phone) {
+  const container = document.getElementById("responsibles-list");
+  const row = el("div", { class: "list-item two" });
+  const nameInput = el("input", { type: "text", placeholder: "Nome", value: name });
+  const phoneInput = el("input", { type: "text", placeholder: "Telefone (só dígitos)", value: phone });
+  const removeBtn = el("button", { type: "button", class: "btn-remove", onclick: () => row.remove() }, ["✕"]);
+  row.appendChild(nameInput);
+  row.appendChild(phoneInput);
+  row.appendChild(removeBtn);
+  container.appendChild(row);
+}
+
+function getResponsibles() {
+  const rows = Array.from(document.querySelectorAll("#responsibles-list .list-item.two"));
+  return rows
+    .map((row) => {
+      const inputs = row.querySelectorAll("input");
+      return { name: inputs[0].value.trim(), phone: inputs[1].value.trim() };
+    })
+    .filter((r) => r.name || r.phone);
+}
+
+function showMsg(text, type) {
+  const msg = document.getElementById("msg");
+  msg.textContent = text;
+  msg.className = "msg show " + type;
+}
+
+function clearLists() {
+  ["groupIds-list", "email-to-list", "email-cc-list", "responsibles-list", "pdfRecipients-list"].forEach((id) => {
+    document.getElementById(id).innerHTML = "";
+  });
+}
+
+async function loadConfig() {
+  const res = await fetch("/api/config");
+  const cfg = await res.json();
+  document.getElementById("ev-baseUrl").value = (cfg.evolution && cfg.evolution.baseUrl) || "";
+  document.getElementById("ev-instance").value = (cfg.evolution && cfg.evolution.instance) || "";
+  document.getElementById("batch-expectedPhotos").value = (cfg.batch && cfg.batch.expectedPhotos) || 5;
+  document.getElementById("batch-windowSeconds").value = (cfg.batch && cfg.batch.windowSeconds) || 60;
+  document.getElementById("batch-sweepIntervalMinutes").value = (cfg.batch && cfg.batch.sweepIntervalMinutes) || 1;
+  document.getElementById("anthropic-model").value = (cfg.anthropic && cfg.anthropic.model) || "claude-sonnet-5";
+  document.getElementById("email-from").value = (cfg.email && cfg.email.from) || "";
+
+  clearLists();
+  ((cfg.whatsapp && cfg.whatsapp.allowedGroupIds) || []).forEach((v) => addListItem("groupIds-list", v));
+  ((cfg.email && cfg.email.to) || []).forEach((v) => addListItem("email-to-list", v));
+  ((cfg.email && cfg.email.cc) || []).forEach((v) => addListItem("email-cc-list", v));
+  (cfg.responsibles || []).forEach((r) => addResponsible(r.name, r.phone));
+  ((cfg.pdfRecipients && cfg.pdfRecipients.numbers) || []).forEach((v) => addListItem("pdfRecipients-list", v));
+}
+
+function buildConfig() {
+  return {
+    evolution: {
+      baseUrl: document.getElementById("ev-baseUrl").value.trim(),
+      instance: document.getElementById("ev-instance").value.trim(),
+    },
+    whatsapp: { allowedGroupIds: getListValues("groupIds-list") },
+    batch: {
+      expectedPhotos: Number(document.getElementById("batch-expectedPhotos").value),
+      windowSeconds: Number(document.getElementById("batch-windowSeconds").value),
+      sweepIntervalMinutes: Number(document.getElementById("batch-sweepIntervalMinutes").value),
+    },
+    anthropic: { model: document.getElementById("anthropic-model").value.trim() },
+    email: {
+      from: document.getElementById("email-from").value.trim(),
+      to: getListValues("email-to-list"),
+      cc: getListValues("email-cc-list"),
+    },
+    responsibles: getResponsibles(),
+    pdfRecipients: { numbers: getListValues("pdfRecipients-list") },
+  };
+}
+
+async function save() {
+  const btn = document.getElementById("btn-save");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildConfig()),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      showMsg("Erro ao salvar:\n" + (data.errors || []).join("\n"), "error");
+    } else {
+      showMsg("Configuração salva em tools/config.json.", "success");
+    }
+  } catch (e) {
+    showMsg("Erro ao salvar: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function generate() {
+  const btn = document.getElementById("btn-generate");
+  btn.disabled = true;
+  document.getElementById("status-text").textContent = "Gerando...";
+  try {
+    const res = await fetch("/api/generate", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      showMsg("Erro ao gerar workflow:\n" + (data.output || (data.errors || []).join("\n")), "error");
+    } else {
+      showMsg("Workflow gerado com sucesso:\n" + data.output, "success");
+    }
+  } catch (e) {
+    showMsg("Erro ao gerar: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+    document.getElementById("status-text").textContent = "";
+  }
+}
+
+function download() {
+  window.location.href = "/api/workflow";
+}
+
+loadConfig().catch((e) => showMsg("Erro ao carregar configuração: " + e.message, "error"));
+</script>
+</body>
+</html>

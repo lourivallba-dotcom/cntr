@@ -119,6 +119,22 @@ Cria as tabelas `bookings`, `photo_batches` e `batch_photos` (comentadas no pró
 
 ### 3. Configurar e gerar o workflow
 
+Duas formas de fazer isso — escolha uma:
+
+**Opção A — painel web (mais fácil, não precisa editar JSON na mão):**
+
+```bash
+node tools/painel-server.mjs
+```
+
+Abra `http://localhost:4000` no navegador. Preencha os campos (Evolution API, grupos
+monitorados, lote de fotos, e-mail, responsáveis, destinatários do PDF), clique em **Salvar
+configuração** e depois em **Gerar workflow**. Use **Baixar agente-cta.json** para pegar o
+arquivo pronto pra importar no n8n. Esse painel só roda localmente (não exponha na internet sem
+proteger com senha/VPN) e não mexe em nenhum segredo — API keys continuam só dentro do n8n.
+
+**Opção B — editar o JSON direto:**
+
 ```bash
 cp tools/config.example.json tools/config.json
 ```
