@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}{{ perfil.empresa or perfil.nome }}{% endblock %}
+{% block conteudo %}
+<div class="estreito">
+<section class="card">
+  <p class="sub">{{ "Embarcador" if perfil.tipo == "embarcador" else "Motorista" }}{% if perfil.cidade %} · {{ perfil.cidade }}/{{ perfil.uf }}{% endif %}</p>
+  <h1>{{ perfil.empresa or perfil.nome }}</h1>
+  <p>{% if reputacao.media %}<strong>★ {{ reputacao.media }}</strong> · {{ reputacao.total }} avaliações{% else %}Sem avaliações ainda{% endif %} · na plataforma desde {{ perfil.criado_em[:10] }}</p>
+  {% if veiculo %}<p>{{ veiculo.tipo_veiculo | veiculo }} · {{ veiculo.carroceria | carroceria }}{% if veiculo.rntrc %} · RNTRC {{ veiculo.rntrc }}{% endif %}</p>{% endif %}
+</section>
+<h2>Avaliações</h2>
+{% for a in avaliacoes %}
+<div class="card avaliacao"><strong>{{ "★" * a.nota }}{{ "☆" * (5 - a.nota) }}</strong> <span class="sub">por {{ a.autor_nome }} · {{ a.criado_em[:10] }}</span>{% if a.comentario %}<p>{{ a.comentario }}</p>{% endif %}</div>
+{% else %}<p class="vazio">Nenhuma avaliação ainda.</p>{% endfor %}
+</div>
+{% endblock %}

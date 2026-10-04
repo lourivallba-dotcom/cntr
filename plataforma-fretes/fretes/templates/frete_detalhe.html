@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block titulo %}{{ frete.origem_cidade }} → {{ frete.destino_cidade }}{% endblock %}
+{% block conteudo %}
+<p><a href="/fretes">← Voltar para a busca</a></p>
+<div class="detalhe">
+  <section class="card">
+    <div class="status status-{{ frete.status }}">{{ frete.status | capitalize }}</div>
+    <h1 class="rota grande">
+      <span>{{ frete.origem_cidade }}/{{ frete.origem_uf }}</span><span class="seta">→</span><span>{{ frete.destino_cidade }}/{{ frete.destino_uf }}</span>
+    </h1>
+    <div class="valor grande">{{ frete.valor_centavos | brl }}{% if frete.valor_centavos is not none %} <small>{{ TIPOS_VALOR[frete.tipo_valor] }}</small>{% endif %}</div>
+    <dl class="dados">
+      <dt>Produto</dt><dd>{{ frete.produto }}</dd>
+      <dt>Espécie</dt><dd>{{ frete.especie }}</dd>
+      <dt>Peso</dt><dd>{{ frete.peso_kg | kg }}</dd>
+      <dt>Coleta</dt><dd>{{ frete.data_coleta }}</dd>
+      <dt>Rastreamento</dt><dd>{{ "Exigido" if frete.rastreamento else "Não exigido" }}</dd>
+      <dt>Veículos</dt><dd>{% for v in frete.veiculos | lista %}<span class="tag">{{ v | veiculo }}</span>{% endfor %}</dd>
+      <dt>Carrocerias</dt><dd>{% for c in frete.carrocerias | lista %}<span class="tag tag-alt">{{ c | carroceria }}</span>{% endfor %}</dd>
+    </dl>
+    {% if frete.observacoes %}<h3>Observações</h3><p class="obs">{{ frete.observacoes }}</p>{% endif %}
+  </section>
+
+  <aside>
+    <section class="card">
+      <h3>Embarcador</h3>
+      <p><a href="/usuarios/{{ frete.embarcador_id }}"><strong>{{ frete.embarcador_empresa or frete.embarcador_nome }}</strong></a></p>
+      <p class="sub">{% if reputacao_embarcador.media %}★ {{ reputacao_embarcador.media }} ({{ reputacao_embarcador.total }} avaliações){% else %}Sem avaliações ainda{% endif %}</p>
+      {% if usuario %}
+        {% if not eh_dono %}
+        <a class="btn btn-whats" target="_blank" rel="noopener"
+           href="{{ whatsapp_link(frete.embarcador_telefone, 'Olá! Vi o frete ' ~ frete.origem_cidade ~ '/' ~ frete.origem_uf ~ ' → ' ~ frete.destino_cidade ~ '/' ~ frete.destino_uf ~ ' (#' ~ frete.id ~ ') na plataforma e tenho interesse.') }}">Chamar no WhatsApp</a>
+        {% endif %}
+      {% else %}
+        <p><a class="btn" href="/entrar?proximo=/fretes/{{ frete.id }}">Entre para ver o contato</a></p>
+      {% endif %}
+    </section>
+
+    {% if usuario and usuario.tipo == "motorista" and frete.status == "aberto" %}
+    <section class="card">
+      {% if minha_candidatura %}
+        <h3>Seu interesse</h3>
+        <p>Status: <span class="status status-{{ minha_candidatura.status }}">{{ minha_candidatura.status }}</span></p>
+      {% elif not meu_veiculo %}
+        <h3>Tenho interesse</h3>
+        <p>Cadastre seu veículo para se candidatar.</p>
+        <a class="btn" href="/perfil/veiculo?proximo=/fretes/{{ frete.id }}">Cadastrar veículo</a>
+      {% else %}
+        <h3>Tenho interesse</h3>
+        {% if meu_veiculo.tipo_veiculo not in (frete.veiculos | lista) or meu_veiculo.carroceria not in (frete.carrocerias | lista) %}
+          <p class="alerta alerta-erro">Atenção: seu veículo ({{ meu_veiculo.tipo_veiculo | veiculo }} / {{ meu_veiculo.carroceria | carroceria }}) não está entre os aceitos neste frete.</p>
+        {% endif %}
+        <form method="post" action="/fretes/{{ frete.id }}/candidatar">
+          <textarea name="mensagem" rows="3" maxlength="500" placeholder="Mensagem para o embarcador (opcional): disponibilidade, contraproposta…"></textarea>
+          <button class="btn">Enviar interesse</button>
+        </form>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if eh_contratado %}
+    <section class="card destaque"><h3>Você foi contratado para este frete 🎉</h3><p>Combine a coleta com o embarcador pelo WhatsApp.</p></section>
+    {% endif %}
+
+    {% if pode_avaliar %}
+    <section class="card">
+      <h3>Avaliar {{ "motorista" if eh_dono else "embarcador" }}</h3>
+      <form method="post" action="/fretes/{{ frete.id }}/avaliar">
+        <div class="estrelas">{% for n in range(5, 0, -1) %}<label><input type="radio" name="nota" value="{{ n }}" required> {{ n }}★</label>{% endfor %}</div>
+        <textarea name="comentario" rows="2" maxlength="500" placeholder="Comentário (opcional)"></textarea>
+        <button class="btn">Enviar avaliação</button>
+      </form>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+
+{% if eh_dono %}
+<section class="card">
+  <div class="cab-secao">
+    <h2>Candidatos ({{ candidaturas | length }})</h2>
+    {% if frete.status == "aberto" %}
+    <form method="post" action="/fretes/{{ frete.id }}/cancelar" onsubmit="return confirm('Cancelar este frete?')"><button class="btn btn-perigo btn-sm">Cancelar frete</button></form>
+    {% endif %}
+  </div>
+  {% if motorista_contratado %}<p class="alerta alerta-ok">Frete fechado com <strong>{{ motorista_contratado.nome }}</strong>.</p>{% endif %}
+  {% if candidaturas %}
+  <div class="tabela-wrap"><table>
+    <thead><tr><th>Motorista</th><th>Veículo</th><th>Placa / RNTRC</th><th>Reputação</th><th>Mensagem</th><th></th></tr></thead>
+    <tbody>
+    {% for c in candidaturas %}
+      <tr>
+        <td><a href="/usuarios/{{ c.motorista_id }}">{{ c.motorista_nome }}</a></td>
+        <td>{% if c.tipo_veiculo %}{{ c.tipo_veiculo | veiculo }} / {{ c.carroceria | carroceria }}{% else %}—{% endif %}</td>
+        <td>{{ c.placa or "—" }}{% if c.rntrc %} / {{ c.rntrc }}{% endif %}</td>
+        <td>{% if c.motorista_media %}★ {{ "%.1f" | format(c.motorista_media) }}{% else %}novo{% endif %}</td>
+        <td>{{ c.mensagem or "" }}</td>
+        <td class="acoes-linha">
+          <a class="btn btn-whats btn-sm" target="_blank" rel="noopener" href="{{ whatsapp_link(c.motorista_telefone, 'Olá ' ~ c.motorista_nome ~ ', sobre o frete #' ~ frete.id ~ ' (' ~ frete.origem_cidade ~ ' → ' ~ frete.destino_cidade ~ ')') }}">WhatsApp</a>
+          {% if frete.status == "aberto" and c.status == "pendente" %}
+          <form method="post" action="/fretes/{{ frete.id }}/candidaturas/{{ c.id }}/aceitar" class="inline"><button class="btn btn-sm">Fechar frete</button></form>
+          {% else %}<span class="status status-{{ c.status }}">{{ c.status }}</span>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="vazio">Nenhum motorista demonstrou interesse ainda.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

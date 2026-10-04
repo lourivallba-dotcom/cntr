@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titulo %}Publicar frete{% endblock %}
+{% block conteudo %}
+<h1>Publicar frete</h1>
+{% if erros %}<div class="alerta alerta-erro"><ul>{% for e in erros %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+<form method="post" action="/fretes/novo" class="card form">
+  <fieldset><legend>Rota</legend>
+    <div class="linha">
+      <div class="campo"><label>Cidade de origem</label><input name="origem_cidade" required value="{{ dados.origem_cidade or '' }}"></div>
+      <div class="campo uf"><label>UF</label><select name="origem_uf" required><option value=""></option>{% for uf in UFS %}<option {% if dados.origem_uf == uf %}selected{% endif %}>{{ uf }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="linha">
+      <div class="campo"><label>Cidade de destino</label><input name="destino_cidade" required value="{{ dados.destino_cidade or '' }}"></div>
+      <div class="campo uf"><label>UF</label><select name="destino_uf" required><option value=""></option>{% for uf in UFS %}<option {% if dados.destino_uf == uf %}selected{% endif %}>{{ uf }}</option>{% endfor %}</select></div>
+    </div>
+  </fieldset>
+  <fieldset><legend>Carga</legend>
+    <div class="linha">
+      <div class="campo"><label>Produto</label><input name="produto" required placeholder="Ex.: Soja, Bobinas de aço, Contêiner 40'" value="{{ dados.produto or '' }}"></div>
+      <div class="campo"><label>Espécie</label><select name="especie" required><option value=""></option>{% for e in ESPECIES %}<option {% if dados.especie == e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="linha">
+      <div class="campo"><label>Peso (kg)</label><input name="peso_kg" inputmode="numeric" required value="{{ dados.peso_kg or '' }}"></div>
+      <div class="campo"><label>Data de coleta</label><input type="date" name="data_coleta" required value="{{ dados.data_coleta or '' }}"></div>
+    </div>
+  </fieldset>
+  <fieldset><legend>Valor</legend>
+    <div class="linha">
+      <div class="campo"><label>Valor do frete (R$)</label><input name="valor" placeholder="Em branco = a combinar" value="{{ dados.valor or '' }}"></div>
+      <div class="campo"><label>Tipo</label><select name="tipo_valor">{% for cod, nome in TIPOS_VALOR.items() %}<option value="{{ cod }}" {% if dados.tipo_valor == cod %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select></div>
+    </div>
+  </fieldset>
+  <fieldset><legend>Veículos aceitos</legend>
+    <div class="checks">{% for cod, nome in VEICULOS.items() %}<label><input type="checkbox" name="veiculos" value="{{ cod }}" {% if cod in (dados.veiculos or []) %}checked{% endif %}> {{ nome }}</label>{% endfor %}</div>
+  </fieldset>
+  <fieldset><legend>Carrocerias aceitas</legend>
+    <div class="checks">{% for cod, nome in CARROCERIAS.items() %}<label><input type="checkbox" name="carrocerias" value="{{ cod }}" {% if cod in (dados.carrocerias or []) %}checked{% endif %}> {{ nome }}</label>{% endfor %}</div>
+  </fieldset>
+  <fieldset><legend>Outros</legend>
+    <label class="check"><input type="checkbox" name="rastreamento" value="1" {% if dados.rastreamento %}checked{% endif %}> Exige rastreamento</label>
+    <div class="campo"><label>Observações</label><textarea name="observacoes" rows="3" placeholder="Horário de carregamento, pedágio, ajudante, etc.">{{ dados.observacoes or '' }}</textarea></div>
+  </fieldset>
+  <button class="btn">Publicar frete</button>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar{% endblock %}
+{% block conteudo %}
+<div class="estreito">
+<h1>Entrar</h1>
+{% if erro %}<div class="alerta alerta-erro">{{ erro }}</div>{% endif %}
+<form method="post" action="/entrar" class="card form">
+  <input type="hidden" name="proximo" value="{{ proximo }}">
+  <div class="campo"><label>E-mail</label><input type="email" name="email" required></div>
+  <div class="campo"><label>Senha</label><input type="password" name="senha" required></div>
+  <button class="btn">Entrar</button>
+  <p class="sub">Ainda não tem conta? <a href="/cadastro">Cadastre-se grátis</a></p>
+</form>
+</div>
+{% endblock %}

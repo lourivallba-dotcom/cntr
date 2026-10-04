@@ -1,0 +1,17 @@
+<a class="frete card" href="/fretes/{{ f.id }}">
+  <div class="rota">
+    <span><strong>{{ f.origem_cidade }}</strong>/{{ f.origem_uf }}</span>
+    <span class="seta">→</span>
+    <span><strong>{{ f.destino_cidade }}</strong>/{{ f.destino_uf }}</span>
+  </div>
+  <div class="valor">{{ f.valor_centavos | brl }}{% if f.valor_centavos is not none and f.tipo_valor == "tonelada" %}<small>/ton</small>{% endif %}</div>
+  <div class="meta">
+    <span>{{ f.produto }} · {{ f.especie }}</span>
+    <span>{{ f.peso_kg | kg }}</span>
+    <span>Coleta {{ f.data_coleta }}</span>
+  </div>
+  <div class="tags">
+    {% for v in f.veiculos | lista %}<span class="tag">{{ v | veiculo }}</span>{% endfor %}
+    {% for c in f.carrocerias | lista %}<span class="tag tag-alt">{{ c | carroceria }}</span>{% endfor %}
+  </div>
+</a>

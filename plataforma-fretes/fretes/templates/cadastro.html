@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Cadastro{% endblock %}
+{% block conteudo %}
+<div class="estreito">
+<h1>Crie sua conta</h1>
+{% if erros %}<div class="alerta alerta-erro"><ul>{% for e in erros %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+<form method="post" action="/cadastro" class="card form">
+  <div class="tipo-conta">
+    <label><input type="radio" name="tipo" value="motorista" {% if dados.tipo != "embarcador" %}checked{% endif %}> 🚛 Sou motorista</label>
+    <label><input type="radio" name="tipo" value="embarcador" {% if dados.tipo == "embarcador" %}checked{% endif %}> 🏭 Sou embarcador</label>
+  </div>
+  <div class="campo"><label>Nome completo</label><input name="nome" required value="{{ dados.nome or '' }}"></div>
+  <div class="campo"><label>Empresa <small>(embarcador)</small></label><input name="empresa" value="{{ dados.empresa or '' }}"></div>
+  <div class="campo"><label>CPF (motorista) ou CNPJ (embarcador)</label><input name="documento" inputmode="numeric" required value="{{ dados.documento or '' }}"></div>
+  <div class="campo"><label>E-mail</label><input type="email" name="email" required value="{{ dados.email or '' }}"></div>
+  <div class="campo"><label>WhatsApp com DDD</label><input name="telefone" inputmode="tel" required placeholder="(11) 91234-5678" value="{{ dados.telefone or '' }}"></div>
+  <div class="linha">
+    <div class="campo"><label>Cidade</label><input name="cidade" value="{{ dados.cidade or '' }}"></div>
+    <div class="campo uf"><label>UF</label><select name="uf"><option value=""></option>{% for uf in UFS %}<option {% if dados.uf == uf %}selected{% endif %}>{{ uf }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="campo"><label>Senha <small>(mín. 8 caracteres)</small></label><input type="password" name="senha" minlength="8" required></div>
+  <button class="btn">Criar conta</button>
+  <p class="sub">Já tem conta? <a href="/entrar">Entrar</a></p>
+</form>
+</div>
+{% endblock %}

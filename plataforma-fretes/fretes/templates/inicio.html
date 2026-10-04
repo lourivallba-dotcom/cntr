@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}Encontre fretes e cargas{% endblock %}
+{% block conteudo %}
+<section class="hero">
+  <h1>Fretes para caminhoneiros.<br>Caminhoneiros para sua carga.</h1>
+  <p>Embarcadores publicam cargas de graça. Motoristas encontram fretes compatíveis com o seu veículo e negociam direto pelo WhatsApp.</p>
+  {% if not usuario %}
+  <div class="acoes">
+    <a class="btn" href="/cadastro?tipo=motorista">Sou motorista</a>
+    <a class="btn btn-sec" href="/cadastro?tipo=embarcador">Sou embarcador</a>
+  </div>
+  {% endif %}
+</section>
+{% include "_busca.html" %}
+<h2>Fretes mais recentes</h2>
+{% if fretes %}
+<div class="grade">{% for f in fretes %}{% include "_frete_card.html" %}{% endfor %}</div>
+<p><a href="/fretes">Ver todos os fretes →</a></p>
+{% else %}
+<p class="vazio">Nenhum frete publicado ainda.</p>
+{% endif %}
+{% endblock %}

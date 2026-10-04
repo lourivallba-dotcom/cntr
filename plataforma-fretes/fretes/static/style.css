@@ -1,0 +1,89 @@
+:root {
+  --bg: #f5f7fa; --card: #ffffff; --texto: #1d2733; --sub: #5d6b7a; --borda: #dde3ea;
+  --primaria: #0b6bcb; --primaria-texto: #ffffff; --sec: #e8f1fb;
+  --ok-bg: #e5f6ea; --ok: #1b7a3a; --erro-bg: #fdecec; --erro: #b42318;
+  --tag: #e8f1fb; --tag-alt: #fff3e0; --whats: #1fa855; --valor: #1b7a3a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161c; --card: #1a2129; --texto: #e6edf3; --sub: #9aa7b4; --borda: #2c3540;
+    --primaria: #4ea1f3; --primaria-texto: #0b1219; --sec: #1f2c3a;
+    --ok-bg: #163222; --ok: #6fd391; --erro-bg: #3a1a1a; --erro: #ff8a80;
+    --tag: #1f2c3a; --tag-alt: #3a2c17; --whats: #2bc767; --valor: #6fd391;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--texto); line-height: 1.5; }
+a { color: var(--primaria); }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+.topo { background: var(--card); border-bottom: 1px solid var(--borda); }
+.topo-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; padding-bottom: 12px; flex-wrap: wrap; }
+.marca { font-size: 1.25rem; text-decoration: none; color: var(--texto); }
+nav { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+nav a { text-decoration: none; }
+.inline { display: inline; }
+button.link { background: none; border: 0; color: var(--primaria); cursor: pointer; font: inherit; padding: 0; }
+.btn { display: inline-block; background: var(--primaria); color: var(--primaria-texto); border: 0; border-radius: 8px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+.btn-sm { padding: 6px 12px; font-size: .9rem; }
+.btn-sec { background: var(--sec); color: var(--primaria); }
+.btn-whats { background: var(--whats); color: #fff; }
+.btn-perigo { background: var(--erro); color: #fff; }
+.card { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.hero { padding: 32px 0 16px; }
+.hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); margin: 0 0 8px; }
+.hero p { color: var(--sub); max-width: 640px; }
+.acoes { display: flex; gap: 12px; flex-wrap: wrap; }
+.busca { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end; }
+.campo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex: 1; min-width: 0; }
+.campo.uf { flex: 0 0 90px; }
+.linha { display: flex; gap: 8px; }
+label { font-size: .9rem; color: var(--sub); }
+input, select, textarea { font: inherit; padding: 9px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--bg); color: var(--texto); width: 100%; min-width: 0; }
+.linha select { width: auto; }
+fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+legend { font-weight: 700; margin-bottom: 8px; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.checks label, .check, .estrelas label, .tipo-conta label { color: var(--texto); display: inline-flex; align-items: center; gap: 6px; }
+.checks input, .check input, .estrelas input, .tipo-conta input { width: auto; }
+.estrelas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.tipo-conta { display: flex; gap: 20px; margin-bottom: 14px; flex-wrap: wrap; }
+.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.frete { display: block; text-decoration: none; color: var(--texto); margin: 0; transition: border-color .15s; }
+.frete:hover { border-color: var(--primaria); }
+.rota { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
+.rota.grande { font-size: 1.4rem; margin: 6px 0; }
+.seta { color: var(--sub); }
+.valor { font-size: 1.25rem; font-weight: 700; color: var(--valor); margin: 6px 0; }
+.valor.grande { font-size: 1.8rem; }
+.valor small { font-size: .8rem; font-weight: 400; color: var(--sub); }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--sub); font-size: .9rem; }
+.tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { background: var(--tag); border-radius: 999px; padding: 2px 10px; font-size: .8rem; display: inline-block; margin: 2px 2px 2px 0; }
+.tag-alt { background: var(--tag-alt); }
+.detalhe { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 760px) { .detalhe { grid-template-columns: 1fr; } }
+.dados { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; }
+.dados dt { color: var(--sub); }
+.dados dd { margin: 0; }
+.obs { white-space: pre-line; }
+.status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; background: var(--tag); text-transform: capitalize; }
+.status-aberto, .status-aceita { background: var(--ok-bg); color: var(--ok); }
+.status-cancelado, .status-recusada { background: var(--erro-bg); color: var(--erro); }
+.destaque { border-color: var(--ok); background: var(--ok-bg); }
+.alerta { padding: 10px 14px; border-radius: 8px; margin: 12px 0; }
+.alerta ul { margin: 0; padding-left: 18px; }
+.alerta-ok { background: var(--ok-bg); color: var(--ok); }
+.alerta-erro { background: var(--erro-bg); color: var(--erro); }
+.sub { color: var(--sub); }
+.vazio { color: var(--sub); padding: 16px 0; }
+.cab-secao { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.estreito { max-width: 520px; margin: 0 auto; }
+.tabela-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--card); }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borda); font-size: .92rem; vertical-align: top; }
+th { color: var(--sub); font-weight: 600; }
+.acoes-linha { display: flex; gap: 6px; flex-wrap: wrap; }
+textarea { margin-bottom: 8px; }
+.rodape { color: var(--sub); font-size: .85rem; padding-top: 32px; padding-bottom: 32px; }
+.linha select { flex: 0 0 76px; }
+.card > h1:first-child, .card > h2:first-child, .card > h3:first-child { margin-top: 0; }

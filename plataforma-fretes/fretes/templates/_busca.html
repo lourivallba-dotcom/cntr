@@ -1,0 +1,25 @@
+<form class="busca card" method="get" action="/fretes">
+  <div class="campo">
+    <label>Origem</label>
+    <div class="linha">
+      <input name="origem_cidade" placeholder="Cidade" value="{{ filtros.origem_cidade }}">
+      <select name="origem_uf"><option value="">UF</option>{% for uf in UFS %}<option {% if filtros.origem_uf == uf %}selected{% endif %}>{{ uf }}</option>{% endfor %}</select>
+    </div>
+  </div>
+  <div class="campo">
+    <label>Destino</label>
+    <div class="linha">
+      <input name="destino_cidade" placeholder="Cidade" value="{{ filtros.destino_cidade }}">
+      <select name="destino_uf"><option value="">UF</option>{% for uf in UFS %}<option {% if filtros.destino_uf == uf %}selected{% endif %}>{{ uf }}</option>{% endfor %}</select>
+    </div>
+  </div>
+  <div class="campo">
+    <label>Veículo</label>
+    <select name="veiculo"><option value="">Todos</option>{% for cod, nome in VEICULOS.items() %}<option value="{{ cod }}" {% if filtros.veiculo == cod %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select>
+  </div>
+  <div class="campo">
+    <label>Carroceria</label>
+    <select name="carroceria"><option value="">Todas</option>{% for cod, nome in CARROCERIAS.items() %}<option value="{{ cod }}" {% if filtros.carroceria == cod %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select>
+  </div>
+  <button class="btn">Buscar fretes</button>
+</form>

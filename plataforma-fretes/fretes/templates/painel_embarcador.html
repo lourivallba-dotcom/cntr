@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Meu painel{% endblock %}
+{% block conteudo %}
+<div class="cab-secao">
+  <h1>Olá, {{ usuario.nome.split(" ")[0] }}</h1>
+  <a class="btn" href="/fretes/novo">+ Publicar frete</a>
+</div>
+<p class="sub">{{ usuario.empresa }} · {% if reputacao.media %}★ {{ reputacao.media }} ({{ reputacao.total }} avaliações){% else %}sem avaliações ainda{% endif %}</p>
+<h2>Meus fretes</h2>
+{% if fretes %}
+<div class="tabela-wrap"><table>
+  <thead><tr><th>#</th><th>Rota</th><th>Produto</th><th>Valor</th><th>Coleta</th><th>Interessados</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for f in fretes %}
+  <tr>
+    <td><a href="/fretes/{{ f.id }}">#{{ f.id }}</a></td>
+    <td><a href="/fretes/{{ f.id }}">{{ f.origem_cidade }}/{{ f.origem_uf }} → {{ f.destino_cidade }}/{{ f.destino_uf }}</a></td>
+    <td>{{ f.produto }}</td>
+    <td>{{ f.valor_centavos | brl }}</td>
+    <td>{{ f.data_coleta }}</td>
+    <td>{{ f.total_candidaturas }}</td>
+    <td><span class="status status-{{ f.status }}">{{ f.status }}</span></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="vazio">Você ainda não publicou fretes. <a href="/fretes/novo">Publicar o primeiro</a>.</p>{% endif %}
+{% endblock %}

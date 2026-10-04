@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Fretes{% endblock %} · Plataforma de Fretes</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topo">
+  <div class="container topo-inner">
+    <a class="marca" href="/">🚚 <strong>Fretes</strong>Brasil</a>
+    <nav>
+      <a href="/fretes">Buscar fretes</a>
+      {% if usuario %}
+        {% if usuario.tipo == "embarcador" %}<a href="/fretes/novo" class="btn btn-sm">Publicar frete</a>{% endif %}
+        <a href="/painel">Meu painel</a>
+        <form method="post" action="/sair" class="inline"><button class="link">Sair</button></form>
+      {% else %}
+        <a href="/entrar">Entrar</a>
+        <a href="/cadastro" class="btn btn-sm">Cadastre-se grátis</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+<main class="container">
+  {% for m in mensagens %}<div class="alerta alerta-{{ m.nivel }}">{{ m.mensagem }}</div>{% endfor %}
+  {% block conteudo %}{% endblock %}
+</main>
+<footer class="rodape container">Plataforma de fretes · conecta embarcadores e caminhoneiros</footer>
+</body>
+</html>

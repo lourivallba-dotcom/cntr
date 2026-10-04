@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block titulo %}Meu painel{% endblock %}
+{% block conteudo %}
+<h1>Olá, {{ usuario.nome.split(" ")[0] }}</h1>
+<p class="sub">{% if reputacao.media %}★ {{ reputacao.media }} ({{ reputacao.total }} avaliações){% else %}sem avaliações ainda{% endif %}</p>
+
+<section class="card">
+  <div class="cab-secao"><h2>Meu veículo</h2><a href="/perfil/veiculo">Editar</a></div>
+  {% if veiculo %}
+    <p>{{ veiculo.tipo_veiculo | veiculo }} · {{ veiculo.carroceria | carroceria }} · placa {{ veiculo.placa }}{% if veiculo.rntrc %} · RNTRC {{ veiculo.rntrc }}{% endif %}</p>
+  {% else %}
+    <p>Você ainda não cadastrou seu veículo. <a class="btn btn-sm" href="/perfil/veiculo">Cadastrar agora</a></p>
+  {% endif %}
+</section>
+
+{% if veiculo %}
+<div class="cab-secao">
+  <h2>Fretes para o seu veículo</h2>
+  <a href="/fretes?veiculo={{ veiculo.tipo_veiculo }}&carroceria={{ veiculo.carroceria }}">Ver todos →</a>
+</div>
+{% if compativeis %}
+<div class="grade">{% for f in compativeis %}{% include "_frete_card.html" %}{% endfor %}</div>
+{% else %}<p class="vazio">Nenhum frete aberto para {{ veiculo.tipo_veiculo | veiculo }} / {{ veiculo.carroceria | carroceria }} agora.</p>{% endif %}
+{% endif %}
+
+<h2>Meus interesses</h2>
+{% if candidaturas %}
+<div class="tabela-wrap"><table>
+  <thead><tr><th>Rota</th><th>Produto</th><th>Valor</th><th>Coleta</th><th>Situação</th></tr></thead>
+  <tbody>
+  {% for c in candidaturas %}
+  <tr>
+    <td><a href="/fretes/{{ c.frete_id }}">{{ c.origem_cidade }}/{{ c.origem_uf }} → {{ c.destino_cidade }}/{{ c.destino_uf }}</a></td>
+    <td>{{ c.produto }}</td>
+    <td>{{ c.valor_centavos | brl }}</td>
+    <td>{{ c.data_coleta }}</td>
+    <td><span class="status status-{{ c.status }}">{{ c.status }}</span></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="vazio">Você ainda não demonstrou interesse em nenhum frete.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Buscar fretes{% endblock %}
+{% block conteudo %}
+<h1>Buscar fretes</h1>
+{% include "_busca.html" %}
+<p class="sub">{{ fretes | length }} frete(s) disponível(is)</p>
+{% if fretes %}
+<div class="grade">{% for f in fretes %}{% include "_frete_card.html" %}{% endfor %}</div>
+{% else %}
+<p class="vazio">Nenhum frete encontrado com esses filtros. Tente ampliar a busca.</p>
+{% endif %}
+{% endblock %}
