@@ -1,0 +1,197 @@
+{
+  "_leia_me": [
+    "Governadores usados quando a consulta ao Wikidata falhar.",
+    "Lista inicial = eleitos em 2022 (mandato 2023-2026). Vários renunciaram em 2026 para disputar eleições: CONFIRA e atualize.",
+    "Use \"fixo\": true para que a entrada sempre prevaleça sobre o Wikidata.",
+    "\"email\" é o endereço que receberá as enquetes (governadores não têm API pública de contato)."
+  ],
+  "AC": {
+    "nome": "Gladson Cameli",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "AL": {
+    "nome": "Paulo Dantas",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "AP": {
+    "nome": "Clécio Luís",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "AM": {
+    "nome": "Wilson Lima",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "BA": {
+    "nome": "Jerônimo Rodrigues",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "CE": {
+    "nome": "Elmano de Freitas",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "DF": {
+    "nome": "Ibaneis Rocha",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "ES": {
+    "nome": "Renato Casagrande",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "GO": {
+    "nome": "Ronaldo Caiado",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "MA": {
+    "nome": "Carlos Brandão",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "MT": {
+    "nome": "Mauro Mendes",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "MS": {
+    "nome": "Eduardo Riedel",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "MG": {
+    "nome": "Romeu Zema",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "PA": {
+    "nome": "Helder Barbalho",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "PB": {
+    "nome": "João Azevêdo",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "PR": {
+    "nome": "Ratinho Júnior",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "PE": {
+    "nome": "Raquel Lyra",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "PI": {
+    "nome": "Rafael Fonteles",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "RJ": {
+    "nome": "Cláudio Castro",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "RN": {
+    "nome": "Fátima Bezerra",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "RS": {
+    "nome": "Eduardo Leite",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "RO": {
+    "nome": "Marcos Rocha",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "RR": {
+    "nome": "Antonio Denarium",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "SC": {
+    "nome": "Jorginho Mello",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "SP": {
+    "nome": "Tarcísio de Freitas",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "SE": {
+    "nome": "Fábio Mitidieri",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  },
+  "TO": {
+    "nome": "Wanderlei Barbosa",
+    "partido": "",
+    "email": "",
+    "foto": "",
+    "fixo": false
+  }
+}

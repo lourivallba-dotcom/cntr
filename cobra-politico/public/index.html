@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b6b3a">
+    <!--META-->
+    <link rel="icon" href="/img/icone.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/css/style.css">
+    <script type="module" src="/js/app.js"></script>
+  </head>
+  <body>
+    <header class="topo">
+      <div class="topo-inner">
+        <a href="/" class="marca" data-link>
+          <img src="/img/icone.svg" alt="" width="36" height="36">
+          <span><b>Cobra</b>Político</span>
+        </a>
+        <nav class="menu" aria-label="Principal">
+          <a href="/" data-link>Estados</a>
+          <a href="/ranking" data-link>Ranking</a>
+          <a href="/criar" data-link class="btn btn-pequeno">+ Criar cobrança</a>
+        </nav>
+        <div id="area-usuario" class="area-usuario"></div>
+      </div>
+    </header>
+
+    <main id="app" tabindex="-1">
+      <p class="carregando">Carregando…</p>
+    </main>
+
+    <footer class="rodape">
+      <p><b>Cobra Político</b> — o Reclame Aqui dos políticos. Plataforma independente, sem vínculo com partidos ou órgãos públicos.</p>
+      <p class="pequeno">Dados de parlamentares: APIs de Dados Abertos da Câmara dos Deputados e do Senado Federal. Governadores: Wikidata.
+        Mapa: <a href="https://github.com/VictorCazanave/svg-maps" rel="noopener">svg-maps</a> (CC BY 4.0). Bandeiras: Wikimedia Commons.</p>
+    </footer>
+
+    <dialog id="dialogo-login" class="dialogo">
+      <form method="dialog" class="dialogo-corpo">
+        <h2>Entrar</h2>
+        <p>Entre para criar cobranças, votar, assinar e comentar.</p>
+        <div id="botoes-login" class="botoes-login"></div>
+        <button class="btn btn-fantasma" value="cancelar">Cancelar</button>
+      </form>
+    </dialog>
+
+    <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+  </body>
+</html>
